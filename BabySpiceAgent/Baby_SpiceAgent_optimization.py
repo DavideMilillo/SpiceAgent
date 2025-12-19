@@ -77,9 +77,7 @@ with open(os.path.join(output_folder, "RC_circuit_sim.net"), 'r') as f:
     netlist_content = f.read()
 
 # Construct Prompt
-prompt = f"""Here is the LTSPice net list:
-{netlist_content}
-
+prompt = f"""
 Here is the results as voltage on the capacitor C, Vn2:
 {data_str}
 
