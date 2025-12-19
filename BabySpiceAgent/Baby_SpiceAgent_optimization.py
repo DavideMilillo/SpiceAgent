@@ -89,6 +89,8 @@ Here is the results as voltage on the capacitor C, Vn2:
 Esitmate the tau constant, tau_old, of the circuit .
 Change the R and/or C values to obtain a time constant of 2 milliseconds.
 
+#Important: RETURN ONLY THE JSON OBJECT. I NEED FOR LTSPICE SIMULATION.
+
 Return ONLY a JSON object with the old time constant, tau_old, and new R and C values only.
 IMPORTANT: Use standard SPICE suffixes (Meg, k, m, u, n, p) for values. 
 DO NOT use Greek letters (like μ) or units (like Ω, F, Ohms, Farads). 
