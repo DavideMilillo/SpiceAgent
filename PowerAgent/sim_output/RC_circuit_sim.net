@@ -1,0 +1,7 @@
+* c:\Users\david\Desktop\PhD\progetti\SpiceAgent\PyLTSpice\RC_circuit.asc
+R1 N002 N001 10k
+C1 N002 0 100n
+V1 N001 0 PULSE(0 5 0 1u 1u 5m 10m)
+.tran 10m
+.backanno
+.end
