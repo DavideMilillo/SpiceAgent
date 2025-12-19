@@ -25,15 +25,14 @@ for component in netlist.get_components():
 #modify the values
 netlist.set_component_value('R1', '10k') #R value
 netlist.set_component_value('C1', '100n') #C value
+#netlist.set_component_value('V1', '5')    #Voltage source value
+netlist.set_element_model('V1', 'PULSE(0 5 0 1u 1u 5m 10m)') #set V1 to a pulse source
 
-netlist.remove_instruction(".tran")   #remove any previous instructions
+#netlist.remove_instruction(".tran")   #remove any previous instructions
 
 netlist.add_instructions(".tran 10m") #tran analysis for 10ms
 
 #run a simulation
-n_sim = 100 #number of simulations
-
-#ciclo di simulazione
 runner = SimRunner(output_folder='./')
 runner.run(netlist, run_filename="RC_circuit_sim.net")
 runner.wait_completion()
