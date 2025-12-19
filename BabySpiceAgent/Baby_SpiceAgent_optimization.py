@@ -80,8 +80,8 @@ with open(os.path.join(output_folder, "RC_circuit_sim.net"), 'r') as f:
 # Construct Prompt
 prompt = f"""
 We are analyzing an RC circuit simulated in LTSpice.
-Here is the LTSpice net list:
-{netlist_content}
+The circuit is excited with a 
+pulse voltage source of 5 V amplitude, 1μs rise and fall time, 5ms pulse width, and 10ms period.
 
 Here is the results as voltage on the capacitor C, Vn2:
 {data_str}
