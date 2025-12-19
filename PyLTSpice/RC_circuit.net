@@ -1,0 +1,6 @@
+* c:\Users\david\Desktop\PhD\progetti\SpiceAgent\PyLTSpice\RC_circuit.asc
+R1 N002 N001 R
+C1 N002 0 C
+V1 N001 0 V
+.backanno
+.end

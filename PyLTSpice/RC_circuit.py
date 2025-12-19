@@ -24,9 +24,9 @@ netlist = SpiceEditor(circuit_path)
 netlist.set_component_value('R1', '10k') #R value
 netlist.set_component_value('C1', '100n') #C value
 
-netlist.remove_instructions(".tran")   #remove any previous instructions
+netlist.remove_instruction(".tran")   #remove any previous instructions
 
-netlist.add_instructions(".tran", "10m") #tran analysis for 10ms
+netlist.add_instructions(".tran 10m") #tran analysis for 10ms
 
 #run a simulation
 n_sim = 100 #number of simulations
