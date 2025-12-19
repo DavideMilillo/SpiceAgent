@@ -8,7 +8,8 @@ import numpy as np
 
 #open the circuit
 #how can I convert the circuit file to a netlist object?
-netlist = SpiceEditor('RC_circuit.net') 
+
+netlist = SpiceEditor('RC_circuit.asc') 
 
 
 #read the circuit file
