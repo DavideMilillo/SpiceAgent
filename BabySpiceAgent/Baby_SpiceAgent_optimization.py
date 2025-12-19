@@ -83,11 +83,16 @@ Here is the results as voltage on the capacitor C, Vn2:
 
 Change the R and/or C values to obtain a time constant of approximately 2 milliseconds.
 
-Return ONLY a JSON object with the old time constant, tau_old, and new R and C values only, in the format:
+Return ONLY a JSON object with the old time constant, tau_old, and new R and C values only.
+IMPORTANT: Use standard SPICE suffixes (Meg, k, m, u, n, p) for values. 
+DO NOT use Greek letters (like μ) or units (like Ω, F, Ohms, Farads). 
+Use 'u' for micro.
+
+Example format:
 {{
-  "tau_old": "value_in_seconds_with_units",
-  "R1": "value_in_ohms_with_unit",
-  "C1": "value_in_farads_with_unit"
+  "tau_old": "5ms",
+  "R1": "12k",
+  "C1": "300n"
 }}
 """
 
