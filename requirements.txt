@@ -1,0 +1,4 @@
+PyLTSpice
+numpy
+matplotlib
+openai
