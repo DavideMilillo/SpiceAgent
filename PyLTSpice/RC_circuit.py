@@ -5,6 +5,7 @@ from PyLTSpice import SimRunner
 from PyLTSpice import SpiceEditor
 from PyLTSpice import RawRead
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 #open the circuit
@@ -38,3 +39,19 @@ runner.run(netlist, run_filename="RC_circuit_sim.net")
 
 
 #show the results
+LTR = RawRead("RC_circuit_sim.raw")
+print(LTR.get_trace_names())
+
+v_c1 = LTR.get_trace('V(n002)')
+x = LTR.get_trace('time')  # Gets the time axis
+steps = LTR.get_steps()
+
+for step in steps:
+    plt.plot(x.get_wave(step), v_c1.get_wave(step), label=f"Step {step}")
+
+plt.title("Voltage across C1")
+plt.xlabel("Time (s)")
+plt.ylabel("Voltage (V)")
+plt.legend()
+plt.grid()
+plt.show()
