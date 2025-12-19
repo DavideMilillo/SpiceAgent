@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 from PyLTSpice import SimRunner, SpiceEditor, RawRead
@@ -78,9 +79,15 @@ with open(os.path.join(output_folder, "RC_circuit_sim.net"), 'r') as f:
 
 # Construct Prompt
 prompt = f"""
+We are analyzing an RC circuit simulated in LTSpice.
+The excitation is a pulse voltage source, 
+and we are interested in the voltage response across the capacitor C1.
+
 Here is the results as voltage on the capacitor C, Vn2:
 {data_str}
 
+Carefully analyze the RC circuit behavior and try to esitmate the tau constant 
+of the circuit considering the voltage response on the capacitor.
 Change the R and/or C values to obtain a time constant of approximately 2 milliseconds.
 
 Return ONLY a JSON object with the old time constant, tau_old, and new R and C values only.
@@ -109,9 +116,46 @@ try:
     answer = response.choices[0].message.content
     print("\n--- Agent Analysis ---")
     print(answer)
+
+    # Parse JSON
+    # Sometimes LLMs wrap JSON in markdown code blocks, so we clean it
+    json_str = answer.replace("```json", "").replace("```", "").strip()
+    data = json.loads(json_str)
+    
+    new_R = data.get("R1")
+    new_C = data.get("C1")
+    
+    print(f"Extracted values: R1={new_R}, C1={new_C}")
+
+    # LOOP
+    # change the netlist using the new R and C values
+    if new_R and new_C:
+        print("Applying new values and rerunning simulation...")
+        netlist.set_component_value('R1', new_R)
+        netlist.set_component_value('C1', new_C)
+        
+        # Rerun simulation
+        runner.run(netlist, run_filename="RC_circuit_sim_optimized.net")
+        runner.wait_completion()
+        
+        # Read new results
+        raw_file_path_opt = os.path.join(output_folder, "RC_circuit_sim_optimized.raw")
+        LTR_opt = RawRead(raw_file_path_opt)
+        v_c1_opt = LTR_opt.get_trace('V(n002)')
+        time_opt = LTR_opt.get_trace('time')
+        step_opt = LTR_opt.get_steps()[0]
+        
+        # Plot comparison
+        plt.figure()
+        plt.plot(time_data, voltage_data, label="Original")
+        plt.plot(time_opt.get_wave(step_opt), v_c1_opt.get_wave(step_opt), label="Optimized", linestyle='--')
+        plt.title("Voltage across C1: Optimization")
+        plt.xlabel("Time (s)")
+        plt.ylabel("Voltage (V)")
+        plt.legend()
+        plt.grid()
+        plt.show()
+        print("Optimization plot generated.")
+
 except Exception as e:
-    print(f"Error calling OpenAI: {e}")
-
-
-# If it gives reasonable value here we add the loop: 
-#change the netlist using the new R and C values
+    print(f"Error: {e}")
