@@ -8,5 +8,5 @@ try PyLTSpice to connect python code to LTSpice program
 Use a simple LLM to analyze the netlist and create a circuit_description.md to summarize the circuit, highlighting the controlled variables of the circuit
 
 
-#third experiment: PowerAgent: Buck converter
+#third experiment: PowerAgent: Buck converter#
 create the real AI-agent that should optimize the circuit parameters
