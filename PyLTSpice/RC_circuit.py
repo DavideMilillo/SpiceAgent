@@ -1,4 +1,5 @@
 #Test PyLTSpice RC Circuit Example
+import os
 import PyLTSpice
 from PyLTSpice import SimRunner
 from PyLTSpice import SpiceEditor
@@ -9,7 +10,8 @@ import numpy as np
 #open the circuit
 #how can I convert the circuit file to a netlist object?
 
-netlist = SpiceEditor('RC_circuit.asc') 
+circuit_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'RC_circuit.asc')
+netlist = SpiceEditor(circuit_path) 
 
 
 #read the circuit file
