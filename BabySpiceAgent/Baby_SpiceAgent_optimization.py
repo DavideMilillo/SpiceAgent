@@ -85,7 +85,7 @@ Here is the results as voltage on the capacitor C, Vn2:
 
 Change the R and/or C values to obtain a time constant of approximately 2 milliseconds.
 
-Return a JSON object with the new R and C values only, in the format:
+Return ONLY a JSON object with the new R and C values only, in the format:
 {{
   "R1": "value_in_ohms_with_unit",
   "C1": "value_in_farads_with_unit"
