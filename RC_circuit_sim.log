@@ -5,8 +5,8 @@ Error on line 4 : v1 n001 0 v
 V1: Missing value, assumed 0V @ DC
 .OP point found by inspection.
 
-Date: Fri Dec 19 16:14:12 2025
-Total elapsed time: 0.013 seconds.
+Date: Fri Dec 19 16:20:55 2025
+Total elapsed time: 0.010 seconds.
 
 tnom = 27
 temp = 27
@@ -19,6 +19,6 @@ rejected = 0
 matrix size = 3
 fillins = 0
 solver = Normal
-Matrix Compiler1:       3 opcodes  0.1/[0.0]/0.1
-Matrix Compiler2: off  [0.0]/0.1/0.1
+Matrix Compiler1: 50 bytes object code size  0.1/0.0/[0.0]
+Matrix Compiler2: off  [0.0]/0.0/0.1
 
