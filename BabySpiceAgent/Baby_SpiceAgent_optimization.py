@@ -86,21 +86,22 @@ Here is the net list:
 Here is the results as voltage on the capacitor C, Vn2:
 {data_str}
 
-Esitmate the tau constant, tau_old, of the circuit .
-Change the R and/or C values to obtain a time constant of 2 milliseconds.
+Task:
+1. Estimate the current time constant (tau_old).
+2. Calculate new R and/or C values to achieve a time constant of exactly 2 milliseconds.
 
-#Important: RETURN ONLY THE JSON OBJECT. I NEED FOR LTSPICE SIMULATION.
+Output Requirements:
+- Return ONLY a valid JSON object.
+- NO explanation, NO reasoning, NO markdown formatting (like ```json).
+- The response must start with {{ and end with }}.
+- Use standard SPICE suffixes (Meg, k, m, u, n, p) for values.
+- DO NOT use Greek letters or units (Ohms, Farads).
 
-Return ONLY a JSON object with the old time constant, tau_old, and new R and C values only.
-IMPORTANT: Use standard SPICE suffixes (Meg, k, m, u, n, p) for values. 
-DO NOT use Greek letters (like μ) or units (like Ω, F, Ohms, Farads). 
-Use 'u' for micro.
-
-Example format:
+Required JSON Structure:
 {{
-  "tau_old": "5ms",
-  "R1": "12k",
-  "C1": "300n"
+  "tau_old": "value",
+  "R1": "new_value",
+  "C1": "new_value"
 }}
 """
 
