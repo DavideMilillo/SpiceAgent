@@ -32,8 +32,8 @@ netlist.add_instructions(".tran 10m") #tran analysis for 10ms
 n_sim = 100 #number of simulations
 
 #ciclo di simulazione
-runner = SimRunner(output_filename="RC_circuit_sim.raw", netlist=netlist)
-runner.run(netlist)
+runner = SimRunner(output_folder='./')
+runner.run(netlist, run_filename="RC_circuit_sim.net")
 
 
 #show the results
