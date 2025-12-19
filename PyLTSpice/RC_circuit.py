@@ -14,10 +14,11 @@ circuit_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'RC_circ
 netlist = SpiceEditor(circuit_path) 
 
 
-#read the circuit file
 
-
-#print the circuit file
+#read and print the circuit file
+print("Circuit Components:")
+for component in netlist.get_components():
+    print(f"Component: {component}, Value: {netlist.get_component_value(component)}")
 
 
 #modify the values
