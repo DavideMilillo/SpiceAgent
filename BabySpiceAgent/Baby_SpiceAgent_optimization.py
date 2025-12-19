@@ -106,7 +106,7 @@ Example format:
 print("\nSending to OpenAI...")
 try:
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4",
         messages=[
             {"role": "system", "content": "You are an expert electronics engineer."},
             {"role": "user", "content": prompt}
