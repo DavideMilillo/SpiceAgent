@@ -80,7 +80,7 @@ with open(os.path.join(output_folder, "RC_circuit_sim.net"), 'r') as f:
 # Construct Prompt
 prompt = f"""
 We are analyzing an RC circuit simulated in LTSpice.
-The excitation is a pulse voltage source, 
+The excitation is a pulse voltage source, of 5 V and 5 ms width, 10 ms period, 
 and we are interested in the voltage response across the capacitor C1.
 
 Here is the results as voltage on the capacitor C, Vn2:
@@ -88,7 +88,7 @@ Here is the results as voltage on the capacitor C, Vn2:
 
 Carefully analyze the RC circuit behavior and try to esitmate the tau constant 
 of the circuit considering the voltage response on the capacitor.
-Change the R and/or C values to obtain a time constant of approximately 2 milliseconds.
+Change the R and/or C values to obtain a time constant of 2 milliseconds.
 
 Return ONLY a JSON object with the old time constant, tau_old, and new R and C values only.
 IMPORTANT: Use standard SPICE suffixes (Meg, k, m, u, n, p) for values. 
