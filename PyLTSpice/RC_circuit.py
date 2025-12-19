@@ -17,7 +17,7 @@ netlist = SpiceEditor(circuit_path)
 
 
 #read and print the circuit file
-print("Circuit Components:")
+print("Circuit Components:", netlist.get_components())
 for component in netlist.get_components():
     print(f"Component: {component}, Value: {netlist.get_component_value(component)}")
 
@@ -36,6 +36,7 @@ n_sim = 100 #number of simulations
 #ciclo di simulazione
 runner = SimRunner(output_folder='./')
 runner.run(netlist, run_filename="RC_circuit_sim.net")
+runner.wait_completion()
 
 
 #show the results
