@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.env
+.venv
+env/
+venv/
+
+# LTSpice / PyLTSpice generated files
+*.net
+*.log
+*.raw
+*.op.raw
+*.fft
+*.plt
+*.sem
+*.tmp
