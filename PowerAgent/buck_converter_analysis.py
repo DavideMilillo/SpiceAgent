@@ -116,6 +116,22 @@ ripple_percent = (ripple_abs / v_mean) * 100 if v_mean != 0 else 0
 overshoot_val = np.max(voltage_data)
 overshoot_percent = ((overshoot_val - v_mean) / v_mean) * 100 if v_mean != 0 else 0
 
+# Calculate settling time (time to stay within 5% of steady state value)
+tolerance_percent = 0.05
+tolerance_val = abs(v_mean * tolerance_percent)
+# Check where voltage is OUTSIDE the tolerance band
+outside_bounds = np.where(np.abs(voltage_data - v_mean) > tolerance_val)[0]
+
+if len(outside_bounds) > 0:
+    # The settling time is the time of the first point AFTER the last point outside bounds
+    last_outside_index = outside_bounds[-1]
+    if last_outside_index < len(time_data) - 1:
+        settling_time = time_data[last_outside_index + 1]
+    else:
+        settling_time = time_data[-1] # Did not settle within simulation time
+else:
+    settling_time = 0.0 # Always within bounds
+
 improving_circuit_prompt = f"""Based on the previous data and analysis,
 suggest ....
 
@@ -125,6 +141,7 @@ Ripple (Absolute): {ripple_abs:.2f} V
 Ripple (Percentage): {ripple_percent:.2f} %
 Overshoot (Absolute): {overshoot_val:.2f} V
 Overshoot (Percentage): {overshoot_percent:.2f} %
+Settling Time (5%): {settling_time:.6f} s
 
 Previous data points: {data_points}
 previous analysis: {response.choices[0].message.content}
