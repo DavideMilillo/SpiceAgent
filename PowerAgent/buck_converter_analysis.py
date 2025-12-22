@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #open the buck converter circuit
-circuit_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Buck_converter_async.asc')
+circuit_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Circuits', 'Buck_converter', 'Buck_converter_async.asc')
 netlist = SpiceEditor(circuit_path)
 
 #read the circuit
