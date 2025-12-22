@@ -133,7 +133,9 @@ else:
     settling_time = 0.0 # Always within bounds
 
 improving_circuit_prompt = f"""Based on the previous data and analysis,
-suggest ....
+suggest imporvements to the circuit components
+to achieve a mean voltage of 5 V, a ripple less than 5%, and you can 
+increase the settling time up to 5 milliseconds (if needed).
 
 Calculated Characteristics:
 Mean Voltage (Steady State): {v_mean:.2f} V
