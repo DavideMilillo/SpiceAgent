@@ -103,6 +103,8 @@ suggest how we can reduce the output voltage ripple (the initial voltage oversho
 Ideally we wish an output voltage that never exceeds 8 V.
 Previous data points: {data_points}
 previous analysis: {response.choices[0].message.content}
+Using the exact values from the netlist below, 
+suggest new values for the inductor L1 and output capacitor Cout.
 netlist: {netlist_content}
 """
 
