@@ -27,8 +27,8 @@ for components in netlist.get_components():
 #set the buck converter's component values
 netlist.set_component_value('Vin', '12')  # Input voltage
 netlist.set_component_value('Cin', '200u')  # Input capacitor
-netlist.set_component_value('L1', '750u')   #Inductor
-netlist.set_component_value('Cout', '1000u')  #Output capacitor 
+netlist.set_component_value('L1', '100u')   #Inductor
+netlist.set_component_value('Cout', '100u')  #Output capacitor 
 netlist.set_component_value('Rload', '6')    #Resistive load
 netlist.set_element_model('Vsw', 'PULSE(0 10 0 1n 1n 3u 15u)')  #Switch control voltage
 netlist.set_element_model('D1', 'MBR745') #diode
