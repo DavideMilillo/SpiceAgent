@@ -71,7 +71,7 @@ def analyze_circuit(netlist):
         netlist_content = f.read()  
     return netlist_content
 
-def simluate_circuit(netlist, y1, y2, yn):
+def simulate_circuit(netlist, y1, y2, yn):
     """
     Docstring for simluate_circuit
     
@@ -158,4 +158,3 @@ def main(void):
     #       e.g. step1) PowerAgent has called analyze_circuit; step2) PowerAgent has thought this circuit is not optimized for this reason. ...
 
     #the ideal flow should be 1, 2, 3, 4, 1, 2,..., 6. And for each step also 7. But the agent can decide also different orders
-    
