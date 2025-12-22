@@ -364,7 +364,7 @@ def plot_comparison(initial_raw_path, final_raw_path):
 
             # 1. Comparison Plot
             plt.figure(figsize=(10, 6))
-            plt.plot(time_init, volt_init, label='Initial Design', linestyle='--', color='gray', alpha=0.7)
+            plt.plot(time_init, volt_init, label='Initial Design', linestyle='--', color='orange', alpha=0.7)
             plt.plot(time_final, volt_final, label='Optimized Design', linewidth=2, color='blue')
             plt.title('Buck Converter Optimization Results', fontsize=14)
             plt.xlabel('Time (ms)', fontsize=12)
@@ -380,7 +380,7 @@ def plot_comparison(initial_raw_path, final_raw_path):
 
             # 2. Initial Plot
             plt.figure(figsize=(10, 6))
-            plt.plot(time_init, volt_init, label='Initial Design', color='gray')
+            plt.plot(time_init, volt_init, label='Initial Design', color='orange')
             plt.title('Buck Converter: Initial Design', fontsize=14)
             plt.xlabel('Time (ms)', fontsize=12)
             plt.ylabel('Output Voltage (V)', fontsize=12)
