@@ -28,8 +28,8 @@ for components in netlist.get_components():
 netlist.set_component_value('Vin', '12')  # Input voltage
 netlist.set_component_value('Cin', '200u')  # Input capacitor
 netlist.set_component_value('L1', '500u')   #Inductor
-netlist.set_component_value('Cout', '300u')  #Output capacitor 
-netlist.set_component_value('Rload', '6k')    #Resistive load
+netlist.set_component_value('Cout', '500u')  #Output capacitor 
+netlist.set_component_value('Rload', '6')    #Resistive load
 netlist.set_element_model('Vsw', 'PULSE(0 10 0 1n 1n 5u 10u)')  #Switch control voltage
 netlist.set_element_model('D1', 'MBR745') #diode
 netlist.set_element_model('M1', 'IRF1404') #Mosfet-switch
