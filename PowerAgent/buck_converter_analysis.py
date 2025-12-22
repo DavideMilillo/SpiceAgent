@@ -28,7 +28,7 @@ for components in netlist.get_components():
 netlist.set_component_value('Vin', '12')  # Input voltage
 netlist.set_component_value('Cin', '200u')  # Input capacitor
 netlist.set_component_value('L1', '100u')   #Inductor
-netlist.set_component_value('Cout', '100u')  #Output capacitor 
+netlist.set_component_value('Cout', '300u')  #Output capacitor 
 netlist.set_component_value('Rload', '6')    #Resistive load
 netlist.set_element_model('Vsw', 'PULSE(0 10 0 1n 1n 5u 10u)')  #Switch control voltage
 netlist.set_element_model('D1', 'MBR745') #diode
@@ -83,11 +83,11 @@ Provide insights on the voltage behavior, stability, and any notable characteris
 """
 
 # Get analysis from LLM
-response = client.chat.completions.create(
-    model="gpt-4",  
-    messages=[
-        {"role": "system", "content": "You are an electronical engineere."},
-        {"role": "user", "content": prompt}
-    ]
-)   
-print("LLM Analysis:", response.choices[0].message.content)
+# response = client.chat.completions.create(
+#     model="gpt-4",  
+#     messages=[
+#         {"role": "system", "content": "You are an electronical engineere."},
+#         {"role": "user", "content": prompt}
+#     ]
+# )   
+# print("LLM Analysis:", response.choices[0].message.content)
