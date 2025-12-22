@@ -219,7 +219,7 @@ def agent_node(state: AgentState):
         messages_with_context = messages
 
     # Call the LLM
-    model = ChatOpenAI(model="gpt-4", temperature=0)
+    model = ChatOpenAI(model="gpt-4", temperature=0.2)
     tools = [analyze_circuit, update_circuit, simulate_circuit, calculate_metrics]
     model_with_tools = model.bind_tools(tools)
     
