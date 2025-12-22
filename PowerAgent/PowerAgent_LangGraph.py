@@ -481,6 +481,8 @@ def main():
 
     # Run final simulation to ensure we have the latest data
     print("Running final simulation for comparison...")
+    # Reload the netlist to ensure we simulate the latest version on disk
+    netlist = SpiceEditor(SIM_NETLIST_NAME)
     runner.run(netlist, run_filename=SIM_NETLIST_NAME)
     runner.wait_completion()
     
