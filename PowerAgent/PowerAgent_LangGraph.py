@@ -10,6 +10,8 @@ Author: Davide Milillo
 
 import os
 import operator
+import shutil
+import matplotlib.pyplot as plt
 from typing import TypedDict, Annotated, List, Union, Dict, Any
 import numpy as np
 from langchain_openai import ChatOpenAI
@@ -332,6 +334,51 @@ def initial_state_circuit():
         log_memory(f"Error initializing circuit: {e}")
         return {}
 
+def plot_comparison(initial_raw_path, final_raw_path):
+    """
+    Plots the initial and final voltage traces for comparison.
+    """
+    try:
+        ltr_init = RawRead(initial_raw_path)
+        ltr_final = RawRead(final_raw_path)
+        
+        def get_vout(ltr):
+            trace_names = ltr.get_trace_names()
+            target = next((t for t in trace_names if 'out' in t.lower() and 'v' in t.lower()), None)
+            if target:
+                return ltr.get_trace(target), ltr.get_trace('time')
+            return None, None
+
+        v_init, t_init = get_vout(ltr_init)
+        v_final, t_final = get_vout(ltr_final)
+        
+        if v_init and v_final:
+            plt.figure(figsize=(10, 6))
+            
+            # Plot Initial
+            steps_init = ltr_init.get_steps()
+            plt.plot(t_init.get_wave(steps_init[0]), v_init.get_wave(steps_init[0]), label='Initial State', linestyle='--', alpha=0.7)
+            
+            # Plot Final
+            steps_final = ltr_final.get_steps()
+            plt.plot(t_final.get_wave(steps_final[0]), v_final.get_wave(steps_final[0]), label='Final Optimized State', linewidth=2)
+            
+            plt.title('Buck Converter Optimization, model GPT-4: Initial vs Final')
+            plt.xlabel('Time (s)')
+            plt.ylabel('Output Voltage (V)')
+            plt.grid(True)
+            plt.legend()
+            
+            output_plot = os.path.join(BASE_DIR, "optimization_comparison.png")
+            plt.savefig(output_plot)
+            print(f"Comparison plot saved to {output_plot}")
+            log_memory(f"Comparison plot saved to {output_plot}")
+        else:
+            print("Error: Could not find V(out) traces for plotting.")
+            
+    except Exception as e:
+        print(f"Error plotting comparison: {e}")
+
 # --- Main Execution ---
 
 def main():
@@ -340,6 +387,19 @@ def main():
     
     # Initialize the circuit
     initial_values = initial_state_circuit()
+    
+    # Run baseline simulation
+    print("Running baseline simulation...")
+    runner = SimRunner(output_folder=BASE_DIR)
+    netlist = SpiceEditor(SIM_NETLIST_NAME)
+    runner.run(netlist, run_filename=SIM_NETLIST_NAME)
+    runner.wait_completion()
+    
+    # Save initial raw file
+    initial_raw_path = os.path.join(BASE_DIR, "initial_sim.raw")
+    if os.path.exists(RAW_FILE_NAME):
+        shutil.copy(RAW_FILE_NAME, initial_raw_path)
+        print(f"Baseline simulation saved to {initial_raw_path}")
     
     # Define the goal
     specifications = (
@@ -386,6 +446,14 @@ def main():
     for event in app.stream(initial_state, config={"recursion_limit": MAX_ITERATIONS}):
         for key, value in event.items():
             print(f"Finished step: {key}")
+
+    # Run final simulation to ensure we have the latest data
+    print("Running final simulation for comparison...")
+    runner.run(netlist, run_filename=SIM_NETLIST_NAME)
+    runner.wait_completion()
+    
+    # Plot comparison
+    plot_comparison(initial_raw_path, RAW_FILE_NAME)
 
 if __name__ == "__main__":
     main()
