@@ -85,14 +85,12 @@ def update_circuit(component_values: Dict[str, str]) -> str:
                           and values are the new values as strings (e.g., '150u', '10').
     """
     try:
-        # Always start from the base ASC to ensure clean state or load previous netlist?
-        # Better to load the base ASC and apply all changes.
-        # But the agent might want incremental changes. 
-        # For simplicity, we assume the agent provides the values it wants to set.
-        # If we want state persistence, we should read the last netlist.
-        # Let's use the base ASC and apply the new values.
-        
-        netlist = SpiceEditor(CIRCUIT_ASC_PATH)
+        # Load the current simulation netlist if it exists to preserve previous changes
+        if os.path.exists(SIM_NETLIST_NAME):
+            netlist = SpiceEditor(SIM_NETLIST_NAME)
+        else:
+            netlist = SpiceEditor(CIRCUIT_ASC_PATH)
+            
         updates_log = "Updating components:\n"
         for name, value in component_values.items():
             if name in ['Vsw', 'D1', 'M1']:
@@ -100,9 +98,6 @@ def update_circuit(component_values: Dict[str, str]) -> str:
             else:
                  netlist.set_component_value(name, value)
             updates_log += f"- {name} -> {value}\n"
-        
-        # Add simulation command if not present (usually in ASC, but good to ensure)
-        # netlist.add_instructions(".tran 0 10m 0 100n") 
         
         netlist.write_netlist(SIM_NETLIST_NAME)
         
@@ -193,6 +188,7 @@ def calculate_metrics() -> str:
 class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], operator.add]
     iteration_count: int
+    circuit_values: Dict[str, str]
 
 # --- Graph Nodes ---
 
@@ -202,6 +198,7 @@ def agent_node(state: AgentState):
     """
     messages = state['messages']
     iteration_count = state['iteration_count']
+    circuit_values = state.get('circuit_values', {})
     
     # Check iteration limit
     if iteration_count >= MAX_ITERATIONS:
@@ -210,12 +207,23 @@ def agent_node(state: AgentState):
             "iteration_count": iteration_count
         }
 
+    # Inject current circuit state into the context if available
+    if circuit_values:
+        state_info = f"\nCurrent Known Circuit State: {circuit_values}\n"
+        # We append this as a system message or just context to the last message?
+        # Appending a SystemMessage is cleaner for the LLM to see the current state.
+        # But we don't want to clutter the history with repeated states if we can avoid it.
+        # Let's add it as a temporary system message for this turn.
+        messages_with_context = [SystemMessage(content=state_info)] + messages
+    else:
+        messages_with_context = messages
+
     # Call the LLM
     model = ChatOpenAI(model="gpt-4", temperature=0)
     tools = [analyze_circuit, update_circuit, simulate_circuit, calculate_metrics]
     model_with_tools = model.bind_tools(tools)
     
-    response = model_with_tools.invoke(messages)
+    response = model_with_tools.invoke(messages_with_context)
     
     # Log the agent's thought process
     log_memory(f"**Agent Thought (Iter {iteration_count}):**\n{response.content}")
@@ -224,13 +232,29 @@ def agent_node(state: AgentState):
 
 def tool_node(state: AgentState):
     """
-    Executes the tools requested by the agent.
+    Executes the tools requested by the agent and updates the circuit state.
     """
-    # We use the prebuilt ToolNode logic manually or just use the ToolNode class
     tools = [analyze_circuit, update_circuit, simulate_circuit, calculate_metrics]
     tool_executor = ToolNode(tools)
     
-    return tool_executor.invoke(state)
+    # Execute tools
+    result = tool_executor.invoke(state)
+    
+    # Update circuit_values in state if update_circuit was called
+    last_message = state['messages'][-1]
+    new_values = state.get('circuit_values', {}).copy()
+    
+    if hasattr(last_message, 'tool_calls'):
+        for tool_call in last_message.tool_calls:
+            if tool_call['name'] == 'update_circuit':
+                updates = tool_call['args'].get('component_values', {})
+                new_values.update(updates)
+                log_memory(f"**State Update:** Circuit values updated: {updates}")
+    
+    return {
+        "messages": result['messages'],
+        "circuit_values": new_values
+    }
 
 # --- Graph Construction ---
 
@@ -271,19 +295,28 @@ def initial_state_circuit():
     """
     Initializes the circuit with default values and simulation commands.
     Saves the netlist to be used by the agent.
+    Returns:
+        Dict[str, str]: The initial component values.
     """
+    initial_values = {
+        'Vin': '12',
+        'Cin': '300u',
+        'L1': '10u',
+        'Cout': '10u',
+        'Rload': '6',
+        'Vsw': 'PULSE(0 10 0 1n 1n 4.2u 10u)',
+        'D1': 'MBR745',
+        'M1': 'IRF1404'
+    }
     try:
         netlist = SpiceEditor(CIRCUIT_ASC_PATH)
         
         # Set the buck converter's component values
-        netlist.set_component_value('Vin', '12')  # Input voltage
-        netlist.set_component_value('Cin', '300u')  # Input capacitor
-        netlist.set_component_value('L1', '10u')   # Inductor
-        netlist.set_component_value('Cout', '10u')  # Output capacitor 
-        netlist.set_component_value('Rload', '6')    # Resistive load
-        netlist.set_element_model('Vsw', 'PULSE(0 10 0 1n 1n 4.2u 10u)')  # Switch control voltage
-        netlist.set_element_model('D1', 'MBR745') # Diode
-        netlist.set_element_model('M1', 'IRF1404') # Mosfet-switch
+        for name, value in initial_values.items():
+            if name in ['Vsw', 'D1', 'M1']:
+                netlist.set_element_model(name, value)
+            else:
+                netlist.set_component_value(name, value)
 
         # Add simulation instructions
         netlist.add_instructions(".tran 0 10m 0 100n")
@@ -292,10 +325,12 @@ def initial_state_circuit():
         netlist.write_netlist(SIM_NETLIST_NAME)
         log_memory("Initial circuit state set and netlist saved.")
         print("Initial circuit state initialized.")
+        return initial_values
         
     except Exception as e:
         print(f"Error initializing circuit: {e}")
         log_memory(f"Error initializing circuit: {e}")
+        return {}
 
 # --- Main Execution ---
 
@@ -304,7 +339,7 @@ def main():
     log_memory("# Optimization Session Started")
     
     # Initialize the circuit
-    initial_state_circuit()
+    initial_values = initial_state_circuit()
     
     # Define the goal
     specifications = (
@@ -317,16 +352,14 @@ def main():
         "Iterate by adjusting L1, Cout, or other parameters until specs are met.\n"
         "If you achieve the goal, summarize the final component values and metrics."
     )
-
-    initial_state_circuit()
-
     
     initial_state = {
         "messages": [
             SystemMessage(content="You are an expert power electronics design agent. Your goal is to optimize a circuit to meet specifications."),
             HumanMessage(content=specifications)
         ],
-        "iteration_count": 0
+        "iteration_count": 0,
+        "circuit_values": initial_values
     }
     
     app = build_graph()
