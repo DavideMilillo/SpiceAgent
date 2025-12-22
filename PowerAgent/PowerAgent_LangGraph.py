@@ -368,7 +368,7 @@ def main():
     print(f"Logs will be written to {MEMORY_FILE}")
     
     # Run the graph
-    for event in app.stream(initial_state):
+    for event in app.stream(initial_state, config={"recursion_limit": MAX_ITERATIONS}):
         for key, value in event.items():
             print(f"Finished step: {key}")
 
