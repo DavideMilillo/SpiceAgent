@@ -30,7 +30,7 @@ netlist.set_component_value('Cin', '200u')  # Input capacitor
 netlist.set_component_value('L1', '100u')   #Inductor
 netlist.set_component_value('Cout', '100u')  #Output capacitor 
 netlist.set_component_value('Rload', '6')    #Resistive load
-netlist.set_element_model('Vsw', 'PULSE(0 10 0 1n 1n 3u 15u)')  #Switch control voltage
+netlist.set_element_model('Vsw', 'PULSE(0 10 0 1n 1n 5u 10u)')  #Switch control voltage
 netlist.set_element_model('D1', 'MBR745') #diode
 netlist.set_element_model('M1', 'IRF1404') #Mosfet-switch
 
@@ -95,19 +95,41 @@ print("LLM Analysis:", response.choices[0].message.content)
 
 print("\n\n\nAsking LLM for improvement suggestions...\n")
 
-#ask how can I reduce the initial voltage ripple/overshoot
+#ask how can I reach specific output voltage characteristics
+
 #preperare the netlist
 with open("Buck_converter_async_sim.net", 'r') as f:
     netlist_content = f.read()  
 
+#evaluate the main oputput voltage characteristics
+voltage_data = v_out.get_wave(steps[0])
+time_data = x.get_wave(steps[0])
+
+# Define steady state as the last 30% of the simulation
+num_points = len(voltage_data)
+start_index = int(num_points * 0.7)
+steady_state_data = voltage_data[start_index:]
+
+v_mean = np.mean(steady_state_data)
+ripple_abs = np.max(steady_state_data) - np.min(steady_state_data)
+ripple_percent = (ripple_abs / v_mean) * 100 if v_mean != 0 else 0
+overshoot_val = np.max(voltage_data)
+overshoot_percent = ((overshoot_val - v_mean) / v_mean) * 100 if v_mean != 0 else 0
+
 improving_circuit_prompt = f"""Based on the previous data and analysis,
-suggest how we can reduce the output voltage ripple (the initial voltage overshoot of 
-10 V) in the buck converter circuit.
-Ideally we wish an output voltage that never exceeds 8 V.
+suggest ....
+
+Calculated Characteristics:
+Mean Voltage (Steady State): {v_mean:.2f} V
+Ripple (Absolute): {ripple_abs:.2f} V
+Ripple (Percentage): {ripple_percent:.2f} %
+Overshoot (Absolute): {overshoot_val:.2f} V
+Overshoot (Percentage): {overshoot_percent:.2f} %
+
 Previous data points: {data_points}
 previous analysis: {response.choices[0].message.content}
 Using the exact values from the netlist below, 
-suggest new values for the inductor L1 and output capacitor Cout.
+suggest new values for cirucuit components.
 netlist: {netlist_content}
 """
 
@@ -115,7 +137,7 @@ netlist: {netlist_content}
 response_suggestions = client.chat.completions.create(
     model="gpt-4",  
     messages=[
-        {"role": "system", "content": "You are an expert electronics engineer."},
+        {"role": "system", "content": "You are an expert electronics engineer. you use rigorous math to calculate circuit parameter values."},
         {"role": "user", "content": improving_circuit_prompt}
     ]
 )
