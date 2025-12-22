@@ -353,31 +353,58 @@ def plot_comparison(initial_raw_path, final_raw_path):
         v_final, t_final = get_vout(ltr_final)
         
         if v_init and v_final:
-            plt.figure(figsize=(10, 6))
-            
-            # Plot Initial
+            # Prepare data
             steps_init = ltr_init.get_steps()
             time_init = t_init.get_wave(steps_init[0]) * 1000 # Convert to ms
             volt_init = v_init.get_wave(steps_init[0])
-            plt.plot(time_init, volt_init, label='Initial Design', linestyle='--', color='orange', alpha=0.7)
             
-            # Plot Final
             steps_final = ltr_final.get_steps()
             time_final = t_final.get_wave(steps_final[0]) * 1000 # Convert to ms
             volt_final = v_final.get_wave(steps_final[0])
+
+            # 1. Comparison Plot
+            plt.figure(figsize=(10, 6))
+            plt.plot(time_init, volt_init, label='Initial Design', linestyle='--', color='gray', alpha=0.7)
             plt.plot(time_final, volt_final, label='Optimized Design', linewidth=2, color='blue')
-            
-            plt.title('Buck Converter Optimization Results using', fontsize=14)
+            plt.title('Buck Converter Optimization Results', fontsize=14)
             plt.xlabel('Time (ms)', fontsize=12)
             plt.ylabel('Output Voltage (V)', fontsize=12)
-            plt.grid(True, which='both', linestyle='--', alpha=0.4)
+            plt.grid(True, which='both', linestyle='--', alpha=0.6)
             plt.legend(fontsize=10)
             plt.tight_layout()
-            
             output_plot = os.path.join(BASE_DIR, "optimization_comparison.png")
             plt.savefig(output_plot, dpi=300)
             print(f"Comparison plot saved to {output_plot}")
             log_memory(f"Comparison plot saved to {output_plot}")
+            plt.close()
+
+            # 2. Initial Plot
+            plt.figure(figsize=(10, 6))
+            plt.plot(time_init, volt_init, label='Initial Design', color='gray')
+            plt.title('Buck Converter: Initial Design', fontsize=14)
+            plt.xlabel('Time (ms)', fontsize=12)
+            plt.ylabel('Output Voltage (V)', fontsize=12)
+            plt.grid(True, which='both', linestyle='--', alpha=0.6)
+            plt.legend(fontsize=10)
+            plt.tight_layout()
+            output_init = os.path.join(BASE_DIR, "optimization_initial.png")
+            plt.savefig(output_init, dpi=300)
+            print(f"Initial plot saved to {output_init}")
+            plt.close()
+
+            # 3. Final Plot
+            plt.figure(figsize=(10, 6))
+            plt.plot(time_final, volt_final, label='Optimized Design', color='blue', linewidth=2)
+            plt.title('Buck Converter: Optimized Design', fontsize=14)
+            plt.xlabel('Time (ms)', fontsize=12)
+            plt.ylabel('Output Voltage (V)', fontsize=12)
+            plt.grid(True, which='both', linestyle='--', alpha=0.6)
+            plt.legend(fontsize=10)
+            plt.tight_layout()
+            output_final = os.path.join(BASE_DIR, "optimization_final.png")
+            plt.savefig(output_final, dpi=300)
+            print(f"Final plot saved to {output_final}")
+            plt.close()
         else:
             print("Error: Could not find V(out) traces for plotting.")
             
