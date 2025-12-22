@@ -21,7 +21,7 @@ from langgraph.prebuilt import ToolNode
 from PyLTSpice import SimRunner, SpiceEditor, RawRead
 
 # --- Configuration ---
-MAX_ITERATIONS = 23
+MAX_ITERATIONS = 100
 MEMORY_FILE = "agent_memory.md"
 # Adjust paths to be absolute or relative to the script location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
