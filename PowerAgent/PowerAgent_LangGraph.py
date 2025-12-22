@@ -267,11 +267,44 @@ def build_graph():
     
     return workflow.compile()
 
+def initial_state_circuit():
+    """
+    Initializes the circuit with default values and simulation commands.
+    Saves the netlist to be used by the agent.
+    """
+    try:
+        netlist = SpiceEditor(CIRCUIT_ASC_PATH)
+        
+        # Set the buck converter's component values
+        netlist.set_component_value('Vin', '12')  # Input voltage
+        netlist.set_component_value('Cin', '300u')  # Input capacitor
+        netlist.set_component_value('L1', '10u')   # Inductor
+        netlist.set_component_value('Cout', '10u')  # Output capacitor 
+        netlist.set_component_value('Rload', '6')    # Resistive load
+        netlist.set_element_model('Vsw', 'PULSE(0 10 0 1n 1n 4.2u 10u)')  # Switch control voltage
+        netlist.set_element_model('D1', 'MBR745') # Diode
+        netlist.set_element_model('M1', 'IRF1404') # Mosfet-switch
+
+        # Add simulation instructions
+        netlist.add_instructions(".tran 0 10m 0 100n")
+        
+        # Save the netlist
+        netlist.write_netlist(SIM_NETLIST_NAME)
+        log_memory("Initial circuit state set and netlist saved.")
+        print("Initial circuit state initialized.")
+        
+    except Exception as e:
+        print(f"Error initializing circuit: {e}")
+        log_memory(f"Error initializing circuit: {e}")
+
 # --- Main Execution ---
 
 def main():
     reset_memory()
     log_memory("# Optimization Session Started")
+    
+    # Initialize the circuit
+    initial_state_circuit()
     
     # Define the goal
     specifications = (
@@ -284,6 +317,9 @@ def main():
         "Iterate by adjusting L1, Cout, or other parameters until specs are met.\n"
         "If you achieve the goal, summarize the final component values and metrics."
     )
+
+    initial_state_circuit()
+
     
     initial_state = {
         "messages": [
