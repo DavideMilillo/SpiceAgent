@@ -352,11 +352,26 @@ def main():
         "Iterate by adjusting L1, Cout, or other parameters until specs are met.\n"
         "If you achieve the goal, summarize the final component values and metrics."
     )
+
+    #define helping electronical instructions for the agent
+    electronic_instructions = ("For the buck converter:\n"
+    "1. To change the output voltage (Vmean), you MUST adjust the duty cycle (D).\n"
+    "   - Formula: D = Vout / Vin. For 5V out with 12V in, D should be approx 0.417 (41.7%).\n"
+    "   - Adjustment: D_new = D_old * (V_target / V_measured).\n"
+    "2. To change the voltage Ripple, adjust Cout or L1.\n"
+    "   - Increasing Cout decreases voltage ripple significantly.\n"
+    "   - Increasing L1 decreases inductor current ripple, which also reduces voltage ripple.\n"
+    "3. Constraints: Rload and Vin are fixed. Do NOT change them.\n"
+    "4. Duty Cycle Implementation:\n"
+    "   - The switch is controlled by Vsw = PULSE(V1 V2 Tdelay Trise Tfall Ton Tperiod).\n"
+    "   - Duty Cycle D = Ton / Tperiod.\n"
+    "   - Example: PULSE(0 10 0 1n 1n 4.2u 10u) -> Ton=4.2u, Tperiod=10u -> D=0.42.\n"
+    "   - To set D=0.35, change Ton to 3.5u (keeping Tperiod=10u).\n")
     
     initial_state = {
         "messages": [
             SystemMessage(content="You are an expert power electronics design agent. Your goal is to optimize a circuit to meet specifications."),
-            HumanMessage(content=specifications)
+            HumanMessage(content=specifications + "\n\n" + electronic_instructions)
         ],
         "iteration_count": 0,
         "circuit_values": initial_values
