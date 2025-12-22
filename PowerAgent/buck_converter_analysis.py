@@ -92,6 +92,9 @@ response = client.chat.completions.create(
 )   
 print("LLM Analysis:", response.choices[0].message.content)
 
+
+print("\n\n\nAsking LLM for improvement suggestions...\n")
+
 #ask how can I reduce the initial voltage ripple/overshoot
 #preperare the netlist
 with open("Buck_converter_async_sim.net", 'r') as f:
