@@ -32,6 +32,9 @@ netlist.set_element_model('Vsw', 'PULSE(0 10 0 1n 1n 5u 10u)')  #Switch control 
 # netlist.set_component_value('D1', 'MBR745') #diode
 # netlist.set_component_value('M1', 'IRF1404') #Mosfet-switch
 
+#nameof the nodes: in, sw and out
+
+
 #add instructions
 netlist.add_instructions(".tran 0 10m 0 100n")
 
@@ -45,7 +48,7 @@ runner.wait_completion()
 LTR = RawRead("Buck_converter_async_sim.raw")
 print(LTR.get_trace_names())
 
-v_out = LTR.get_trace('V(n004)')  # Output voltage node
+v_out = LTR.get_trace('V(out)')  # Output voltage node
 x = LTR.get_trace('time')  # Gets the time axis
 steps = LTR.get_steps()
 
