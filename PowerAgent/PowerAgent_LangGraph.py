@@ -357,20 +357,25 @@ def plot_comparison(initial_raw_path, final_raw_path):
             
             # Plot Initial
             steps_init = ltr_init.get_steps()
-            plt.plot(t_init.get_wave(steps_init[0]), v_init.get_wave(steps_init[0]), label='Initial State', linestyle='--', alpha=0.7)
+            time_init = t_init.get_wave(steps_init[0]) * 1000 # Convert to ms
+            volt_init = v_init.get_wave(steps_init[0])
+            plt.plot(time_init, volt_init, label='Initial Design', linestyle='--', color='orange', alpha=0.7)
             
             # Plot Final
             steps_final = ltr_final.get_steps()
-            plt.plot(t_final.get_wave(steps_final[0]), v_final.get_wave(steps_final[0]), label='Final Optimized State', linewidth=2)
+            time_final = t_final.get_wave(steps_final[0]) * 1000 # Convert to ms
+            volt_final = v_final.get_wave(steps_final[0])
+            plt.plot(time_final, volt_final, label='Optimized Design', linewidth=2, color='blue')
             
-            plt.title('Buck Converter Optimization, model GPT-4: Initial vs Final')
-            plt.xlabel('Time (s)')
-            plt.ylabel('Output Voltage (V)')
-            plt.grid(True)
-            plt.legend()
+            plt.title('Buck Converter Optimization Results using', fontsize=14)
+            plt.xlabel('Time (ms)', fontsize=12)
+            plt.ylabel('Output Voltage (V)', fontsize=12)
+            plt.grid(True, which='both', linestyle='--', alpha=0.4)
+            plt.legend(fontsize=10)
+            plt.tight_layout()
             
             output_plot = os.path.join(BASE_DIR, "optimization_comparison.png")
-            plt.savefig(output_plot)
+            plt.savefig(output_plot, dpi=300)
             print(f"Comparison plot saved to {output_plot}")
             log_memory(f"Comparison plot saved to {output_plot}")
         else:
