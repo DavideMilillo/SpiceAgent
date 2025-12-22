@@ -82,12 +82,37 @@ Data Points: {data_points}
 Provide insights on the voltage behavior, stability, and any notable characteristics.
 """
 
-# Get analysis from LLM
-# response = client.chat.completions.create(
-#     model="gpt-4",  
-#     messages=[
-#         {"role": "system", "content": "You are an electronical engineere."},
-#         {"role": "user", "content": prompt}
-#     ]
-# )   
-# print("LLM Analysis:", response.choices[0].message.content)
+#Get analysis from LLM
+response = client.chat.completions.create(
+    model="gpt-4",  
+    messages=[
+        {"role": "system", "content": "You are an electronical engineere."},
+        {"role": "user", "content": prompt}
+    ]
+)   
+print("LLM Analysis:", response.choices[0].message.content)
+
+#ask how can I reduce the initial voltage ripple/overshoot
+#preperare the netlist
+with open("Buck_converter_async_sim.net", 'r') as f:
+    netlist_content = f.read()  
+
+improving_circuit_prompt = f"""Based on the previous data and analysis,
+suggest how we can reduce the output voltage ripple (the initial voltage overshoot of 
+10 V) in the buck converter circuit.
+Ideally we wish an output voltage that never exceeds 8 V.
+Previous data points: {data_points}
+previous analysis: {response.choices[0].message.content}
+netlist: {netlist_content}
+"""
+
+#get suggestions from LLM
+response_suggestions = client.chat.completions.create(
+    model="gpt-4",  
+    messages=[
+        {"role": "system", "content": "You are an expert electronics engineer."},
+        {"role": "user", "content": improving_circuit_prompt}
+    ]
+)
+
+print("LLM Improvement Suggestions:", response_suggestions.choices[0].message.content)
