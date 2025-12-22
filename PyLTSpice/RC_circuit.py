@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 #open the circuit
 #how can I convert the circuit file to a netlist object?
+# SpiceEditor can use netlist object, .net, or also .asc files directly
 
 circuit_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'RC_circuit.asc')
 netlist = SpiceEditor(circuit_path) 
