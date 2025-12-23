@@ -27,7 +27,7 @@ MAX_ITERATIONS = 100
 MEMORY_FILE = "agent_memory.md"
 # Adjust paths to be absolute or relative to the script location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CIRCUIT_ASC_PATH = os.path.join(BASE_DIR, '..', 'Circuits', 'Buck_converter', 'Buck_converter_real.asc')
+CIRCUIT_ASC_PATH = os.path.join(BASE_DIR, '..', 'Circuits', 'Buck_converter', 'Buck_converter_real.net')
 SIM_NETLIST_NAME = os.path.join(BASE_DIR, "Buck_converter_real_sim.net")
 RAW_FILE_NAME = os.path.join(BASE_DIR, "Buck_converter_real_sim.raw")
 
