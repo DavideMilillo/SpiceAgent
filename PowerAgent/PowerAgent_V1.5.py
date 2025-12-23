@@ -476,7 +476,9 @@ def main():
     "   - The switch is controlled by Vsw = PULSE(V1 V2 Tdelay Trise Tfall Ton Tperiod).\n"
     "   - Duty Cycle D = Ton / Tperiod.\n"
     "   - Example: PULSE(0 10 0 1n 1n 4.2u 10u) -> Ton=4.2u, Tperiod=10u -> D=0.42.\n"
-    "   - To set D=0.35, change Ton to 3.5u (keeping Tperiod=10u).\n")
+    "   - To set D=0.35, change Ton to 3.5u (keeping Tperiod=10u).\n"
+    "5. this is a REAL buck converter, it can have some non linearities,\n"
+    "So if some formulas doesn't lead to the expected results, try to adjust empirically.\n")
     
     initial_state = {
         "messages": [
