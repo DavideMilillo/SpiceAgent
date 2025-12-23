@@ -35,12 +35,12 @@ RAW_FILE_NAME = os.path.join(BASE_DIR, "Buck_converter_real_sim.raw")
 
 def log_memory(message: str):
     """Logs a message to the agent_memory.md file."""
-    with open(MEMORY_FILE, "a") as f:
+    with open(MEMORY_FILE, "a", encoding="utf-8") as f:
         f.write(f"{message}\n\n")
 
 def reset_memory():
     """Resets the agent_memory.md file."""
-    with open(MEMORY_FILE, "w") as f:
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
         f.write("# PowerAgent Memory Log\n\n")
 
 # --- Tools ---
@@ -478,7 +478,8 @@ def main():
     "   - Example: PULSE(0 10 0 1n 1n 4.2u 10u) -> Ton=4.2u, Tperiod=10u -> D=0.42.\n"
     "   - To set D=0.35, change Ton to 3.5u (keeping Tperiod=10u).\n"
     "5. this is a REAL buck converter, it can have some non linearities,\n"
-    "So if some formulas doesn't lead to the expected results, try to adjust empirically.\n")
+    "So if some formulas doesn't lead to the expected results, try to adjust empirically.\n"
+    "6. IMPORTANT: Do NOT use Greek letters (like Omega) in your responses. Use 'Ohms', 'uF', 'uH' instead.\n")
     
     initial_state = {
         "messages": [
