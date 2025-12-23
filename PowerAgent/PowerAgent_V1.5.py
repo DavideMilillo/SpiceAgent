@@ -489,7 +489,7 @@ def main():
     
     app = build_graph()
     
-    print("Starting PowerAgent V1 (LangGraph)...")
+    print("Starting PowerAgent V1.5 (real buck)...")
     print(f"Logs will be written to {MEMORY_FILE}")
     
     # Run the graph
