@@ -27,9 +27,9 @@ MAX_ITERATIONS = 100
 MEMORY_FILE = "agent_memory.md"
 # Adjust paths to be absolute or relative to the script location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CIRCUIT_ASC_PATH = os.path.join(BASE_DIR, '..', 'Circuits', 'Buck_converter', 'Buck_converter_async.asc')
-SIM_NETLIST_NAME = os.path.join(BASE_DIR, "Buck_converter_async_sim.net")
-RAW_FILE_NAME = os.path.join(BASE_DIR, "Buck_converter_async_sim.raw")
+CIRCUIT_ASC_PATH = os.path.join(BASE_DIR, '..', 'Circuits', 'Buck_converter', 'Buck_converter_real.asc')
+SIM_NETLIST_NAME = os.path.join(BASE_DIR, "Buck_converter_real_sim.net")
+RAW_FILE_NAME = os.path.join(BASE_DIR, "Buck_converter_real_sim.raw")
 
 # --- Helper Functions ---
 
@@ -293,46 +293,47 @@ def build_graph():
     
     return workflow.compile()
 
-def initial_state_circuit():
-    """
-    Initializes the circuit with default values and simulation commands.
-    Saves the netlist to be used by the agent.
-    Returns:
-        Dict[str, str]: The initial component values.
-    """
-    initial_values = {
-        'Vin': '12',
-        'Cin': '300u',
-        'L1': '10u',
-        'Cout': '10u',
-        'Rload': '6',
-        'Vsw': 'PULSE(0 10 0 1n 1n 4.2u 10u)',
-        'D1': 'MBR745',
-        'M1': 'IRF1404'
-    }
-    try:
-        netlist = SpiceEditor(CIRCUIT_ASC_PATH)
+#we do not need initial value anymore, now it set in the LTSpice file directly
+# def initial_state_circuit():
+#     """
+#     Initializes the circuit with default values and simulation commands.
+#     Saves the netlist to be used by the agent.
+#     Returns:
+#         Dict[str, str]: The initial component values.
+#     """
+#     initial_values = {
+#         'Vin': '12',
+#         'Cin': '300u',
+#         'L1': '10u',
+#         'Cout': '10u',
+#         'Rload': '6',
+#         'Vsw': 'PULSE(0 10 0 1n 1n 4.2u 10u)',
+#         'D1': 'MBR745',
+#         'M1': 'IRF1404'
+#     }
+#     try:
+#         netlist = SpiceEditor(CIRCUIT_ASC_PATH)
         
-        # Set the buck converter's component values
-        for name, value in initial_values.items():
-            if name in ['Vsw', 'D1', 'M1']:
-                netlist.set_element_model(name, value)
-            else:
-                netlist.set_component_value(name, value)
+#         # Set the buck converter's component values
+#         for name, value in initial_values.items():
+#             if name in ['Vsw', 'D1', 'M1']:
+#                 netlist.set_element_model(name, value)
+#             else:
+#                 netlist.set_component_value(name, value)
 
-        # Add simulation instructions
-        netlist.add_instructions(".tran 0 10m 0 100n")
+#         # Add simulation instructions
+#         netlist.add_instructions(".tran 0 10m 0 100n")
         
-        # Save the netlist
-        netlist.write_netlist(SIM_NETLIST_NAME)
-        log_memory("Initial circuit state set and netlist saved.")
-        print("Initial circuit state initialized.")
-        return initial_values
+#         # Save the netlist
+#         netlist.write_netlist(SIM_NETLIST_NAME)
+#         log_memory("Initial circuit state set and netlist saved.")
+#         print("Initial circuit state initialized.")
+#         return initial_values
         
-    except Exception as e:
-        print(f"Error initializing circuit: {e}")
-        log_memory(f"Error initializing circuit: {e}")
-        return {}
+#     except Exception as e:
+#         print(f"Error initializing circuit: {e}")
+#         log_memory(f"Error initializing circuit: {e}")
+#         return {}
 
 def plot_comparison(initial_raw_path, final_raw_path):
     """
