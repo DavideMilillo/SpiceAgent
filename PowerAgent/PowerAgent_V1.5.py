@@ -30,7 +30,7 @@ RESULTS_DIR = os.path.join(BASE_DIR, "experiment_results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 MEMORY_FILE = os.path.join(RESULTS_DIR, "agent_memory.md")
-CIRCUIT_ASC_PATH = os.path.join(BASE_DIR, '..', 'Circuits', 'Buck_converter', 'Buck_converter_real.net')
+CIRCUIT_ASC_PATH = os.path.join(BASE_DIR, '..', 'Circuits', 'Buck_converter', 'Buck_converter_real.asc')
 SIM_NETLIST_NAME = os.path.join(RESULTS_DIR, "Buck_converter_real_sim.net")
 RAW_FILE_NAME = os.path.join(RESULTS_DIR, "Buck_converter_real_sim.raw")
 
