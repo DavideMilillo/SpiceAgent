@@ -339,7 +339,10 @@ def initial_state_circuit():
         'Rload': '6',
         'Vsw': 'PULSE(0 10 0 1n 1n 3.38u 10u)',
         'D1': 'MBR745',
-        'M1': 'IRF1404'
+        'M1': 'IRF1404',
+        'I_sat': '5',
+        'C_min': '1u',
+        'V_coeff': '10'
     }
     try:
         netlist = SpiceEditor(CIRCUIT_ASC_PATH)
@@ -350,15 +353,12 @@ def initial_state_circuit():
                 netlist.set_parameter('C_nom', value)
             elif name == 'L1':
                 netlist.set_parameter('L_nom', value)
+            elif name in ['I_sat', 'C_min', 'V_coeff']:
+                netlist.set_parameter(name, value)
             elif name in ['Vsw', 'D1', 'M1']:
                 netlist.set_element_model(name, value)
             else:
                 netlist.set_component_value(name, value)
-
-        # Ensure other parameters are set
-        netlist.set_parameter('C_min', '1u')
-        netlist.set_parameter('V_coeff', '10')
-        netlist.set_parameter('I_sat', '5')
 
         # Add simulation instructions if needed (usually present in .net)
         # netlist.add_instructions(".tran 0 10m 0 100n")
