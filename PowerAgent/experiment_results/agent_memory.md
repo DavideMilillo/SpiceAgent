@@ -19,7 +19,7 @@ Current Circuit Configuration (Buck_converter_real_sim.net):
 - Cout: Cout out 0 Q={C_min}*x + ({C_nom}-{C_min})*{V_coeff}*tanh(x/{V_coeff})
 
 Parameters:
-.param C_nom= 33u C_min= 1u V_coeff= 10 L_nom= 14u I_sat= 5
+.param C_nom= 33u C_min= 1u V_coeff= 5 L_nom= 14u I_sat= 3
 
 
 **Agent Thought (Iter 1):**
@@ -34,29 +34,27 @@ Parameters:
 
 **Tool Call (calculate_metrics):**
 Simulation Metrics:
-{'v_mean': 4.503204822540283, 'ripple_pp': 0.0959620475769043, 'ripple_percent': 2.130972221493721, 'max_voltage': 4.560213565826416, 'min_voltage': 4.464251518249512}
+{'v_mean': 4.645565509796143, 'ripple_pp': 0.1774749755859375, 'ripple_percent': 3.820309415459633, 'max_voltage': 4.752311706542969, 'min_voltage': 4.574836730957031}
 
 **Agent Thought (Iter 3):**
-### Current Performance
-- **Mean Output Voltage (V_mean):** 4.50V
-- **Output Ripple (Peak-to-Peak):** 0.096V
-- **Output Ripple (%):** 2.13%
+### Baseline Simulation Results:
+- **Mean Output Voltage (V_mean):** 4.65V
+- **Output Ripple (Peak-to-Peak):** 0.177V
+- **Output Ripple (%):** 3.82%
 
-### Observations
+### Observations:
 - The mean output voltage is below the target range of 5V ± 0.1V.
-- The output ripple is within the acceptable range (< 0.25V).
+- The ripple is within the acceptable range of less than 5%.
 
-### Next Steps
-To increase the mean output voltage to approximately 5V, we need to adjust the duty cycle (D) of the switching signal. The current duty cycle is calculated as follows:
-- **Current Duty Cycle (D):** \( \frac{3.38\mu s}{10\mu s} = 0.338 \)
+### Next Steps:
+1. **Adjust Duty Cycle (D):** The current duty cycle is approximately 0.338 (Ton = 3.38u, Tperiod = 10u). To achieve a V_mean closer to 5V, we need to increase the duty cycle.
+   - Current D = 0.338
+   - Target D = 5V / 12V = 0.417
+   - New Ton = 0.417 * 10u = 4.17u
 
-To achieve a mean output voltage of 5V with an input voltage of 12V, the duty cycle should be approximately 0.417. Let's adjust the duty cycle accordingly.
+2. **Re-simulate** with the updated duty cycle to check if the V_mean is within the desired range.
 
-### Duty Cycle Adjustment
-- **Target Duty Cycle (D_target):** 0.417
-- **New Ton:** \( 0.417 \times 10\mu s = 4.17\mu s \)
-
-Let's update the circuit with this new Ton value and simulate again.
+Let's update the duty cycle and re-simulate the circuit.
 
 **Tool Call (update_circuit):**
 Updating components:
@@ -77,41 +75,33 @@ Updating components:
 
 **Tool Call (calculate_metrics):**
 Simulation Metrics:
-{'v_mean': 5.517673015594482, 'ripple_pp': 0.11659574508666992, 'ripple_percent': 2.1131325513124466, 'max_voltage': 5.581236839294434, 'min_voltage': 5.464641094207764}
+{'v_mean': 5.521050930023193, 'ripple_pp': 0.2537841796875, 'ripple_percent': 4.596664384007454, 'max_voltage': 5.660794258117676, 'min_voltage': 5.407010078430176}
 
 **Agent Thought (Iter 6):**
-### Current Performance After Duty Cycle Adjustment
+### Updated Simulation Results:
 - **Mean Output Voltage (V_mean):** 5.52V
-- **Output Ripple (Peak-to-Peak):** 0.117V
-- **Output Ripple (%):** 2.11%
+- **Output Ripple (Peak-to-Peak):** 0.254V
+- **Output Ripple (%):** 4.60%
 
-### Observations
+### Observations:
 - The mean output voltage is now above the target range of 5V ± 0.1V.
-- The output ripple remains within the acceptable range (< 0.25V).
+- The ripple is slightly above the acceptable peak-to-peak value of 0.25V.
 
-### Next Steps
-The mean output voltage is too high, indicating that the duty cycle is slightly overestimated. We need to adjust the duty cycle downwards to bring the mean output voltage within the target range.
+### Next Steps:
+1. **Fine-tune Duty Cycle (D):** The V_mean is too high, so we need to slightly decrease the duty cycle.
+   - Current D = 0.417
+   - Adjust D to bring V_mean closer to 5V. Let's try a slightly lower Ton value, say 4.05u.
 
-### Duty Cycle Adjustment
-- **Current Duty Cycle (D_current):** 0.417
-- **Measured V_mean:** 5.52V
-- **Target V_mean:** 5.0V
+2. **Re-simulate** with the updated duty cycle to check if the V_mean and ripple are within the desired range.
 
-Using the formula for duty cycle adjustment:
-\[ D_{\text{new}} = D_{\text{current}} \times \left(\frac{V_{\text{target}}}{V_{\text{measured}}}\right) \]
-
-\[ D_{\text{new}} = 0.417 \times \left(\frac{5.0}{5.52}\right) \approx 0.378 \]
-
-- **New Ton:** \( 0.378 \times 10\mu s = 3.78\mu s \)
-
-Let's update the circuit with this new Ton value and simulate again.
+Let's update the duty cycle and re-simulate the circuit.
 
 **Tool Call (update_circuit):**
 Updating components:
-- Vsw -> PULSE(0 10 0 1n 1n 3.78u 10u)
+- Vsw -> PULSE(0 10 0 1n 1n 4.05u 10u)
 
 
-**State Update:** Circuit values updated: {'Vsw': 'PULSE(0 10 0 1n 1n 3.78u 10u)'}
+**State Update:** Circuit values updated: {'Vsw': 'PULSE(0 10 0 1n 1n 4.05u 10u)'}
 
 **Agent Thought (Iter 7):**
 
@@ -125,29 +115,102 @@ Updating components:
 
 **Tool Call (calculate_metrics):**
 Simulation Metrics:
-{'v_mean': 4.973108768463135, 'ripple_pp': 0.10577535629272461, 'ripple_percent': 2.126946300268173, 'max_voltage': 5.032140254974365, 'min_voltage': 4.926364898681641}
+{'v_mean': 5.350291728973389, 'ripple_pp': 0.2373204231262207, 'ripple_percent': 4.435653984546661, 'max_voltage': 5.482059955596924, 'min_voltage': 5.244739532470703}
 
 **Agent Thought (Iter 9):**
-### Final Performance
-- **Mean Output Voltage (V_mean):** 4.97V
-- **Output Ripple (Peak-to-Peak):** 0.106V
-- **Output Ripple (%):** 2.13%
+### Updated Simulation Results:
+- **Mean Output Voltage (V_mean):** 5.35V
+- **Output Ripple (Peak-to-Peak):** 0.237V
+- **Output Ripple (%):** 4.44%
 
-### Observations
+### Observations:
+- The mean output voltage is still above the target range of 5V ± 0.1V.
+- The ripple is within the acceptable range.
+
+### Next Steps:
+1. **Further Adjust Duty Cycle (D):** The V_mean is still too high, so we need to decrease the duty cycle further.
+   - Current Ton = 4.05u
+   - Let's try a slightly lower Ton value, say 3.9u.
+
+2. **Re-simulate** with the updated duty cycle to check if the V_mean and ripple are within the desired range.
+
+Let's update the duty cycle and re-simulate the circuit.
+
+**Tool Call (update_circuit):**
+Updating components:
+- Vsw -> PULSE(0 10 0 1n 1n 3.9u 10u)
+
+
+**State Update:** Circuit values updated: {'Vsw': 'PULSE(0 10 0 1n 1n 3.9u 10u)'}
+
+**Agent Thought (Iter 10):**
+
+
+**Tool Call (simulate_circuit):** Starting simulation...
+
+**Tool Call (simulate_circuit):** Simulation completed.
+
+**Agent Thought (Iter 11):**
+
+
+**Tool Call (calculate_metrics):**
+Simulation Metrics:
+{'v_mean': 5.149415016174316, 'ripple_pp': 0.21839094161987305, 'ripple_percent': 4.2410824447870255, 'max_voltage': 5.27193546295166, 'min_voltage': 5.053544521331787}
+
+**Agent Thought (Iter 12):**
+### Updated Simulation Results:
+- **Mean Output Voltage (V_mean):** 5.15V
+- **Output Ripple (Peak-to-Peak):** 0.218V
+- **Output Ripple (%):** 4.24%
+
+### Observations:
+- The mean output voltage is still slightly above the target range of 5V ± 0.1V.
+- The ripple is within the acceptable range.
+
+### Next Steps:
+1. **Fine-tune Duty Cycle (D) Again:** The V_mean is slightly high, so we need to decrease the duty cycle a bit more.
+   - Current Ton = 3.9u
+   - Let's try a slightly lower Ton value, say 3.8u.
+
+2. **Re-simulate** with the updated duty cycle to check if the V_mean and ripple are within the desired range.
+
+Let's update the duty cycle and re-simulate the circuit.
+
+**Tool Call (update_circuit):**
+Updating components:
+- Vsw -> PULSE(0 10 0 1n 1n 3.8u 10u)
+
+
+**State Update:** Circuit values updated: {'Vsw': 'PULSE(0 10 0 1n 1n 3.8u 10u)'}
+
+**Agent Thought (Iter 13):**
+
+
+**Tool Call (simulate_circuit):** Starting simulation...
+
+**Tool Call (simulate_circuit):** Simulation completed.
+
+**Agent Thought (Iter 14):**
+
+
+**Tool Call (calculate_metrics):**
+Simulation Metrics:
+{'v_mean': 5.022716522216797, 'ripple_pp': 0.2065739631652832, 'ripple_percent': 4.112793505191803, 'max_voltage': 5.141668796539307, 'min_voltage': 4.935094833374023}
+
+**Agent Thought (Iter 15):**
+### Final Simulation Results:
+- **Mean Output Voltage (V_mean):** 5.02V
+- **Output Ripple (Peak-to-Peak):** 0.207V
+- **Output Ripple (%):** 4.11%
+
+### Observations:
 - The mean output voltage is now within the target range of 5V ± 0.1V.
-- The output ripple remains well within the acceptable range (< 0.25V).
+- The ripple is well within the acceptable range.
 
-### Summary of Final Component Values
-- **Vin:** 12V
-- **Cin:** 300uF
-- **L1:** 14uH
-- **Cout:** 33uF
-- **Rload:** 6 Ohms
-- **Vsw:** PULSE(0 10 0 1n 1n 3.78u 10u)
-- **D1:** MBR745
-- **M1:** IRF1404
+### Final Component Values:
+- **Duty Cycle (D):** Achieved with Ton = 3.8u and Tperiod = 10u, resulting in D = 0.38.
 
-The circuit now meets the specified requirements for mean output voltage and output ripple, ensuring stable operation.
+The circuit now meets the specified requirements for mean output voltage and ripple. The adjustments to the duty cycle have successfully optimized the buck converter's performance.
 
 Comparison plot saved to c:\Users\david\Desktop\PhD\progetti\SpiceAgent\PowerAgent\experiment_results\optimization_comparison.png
 
