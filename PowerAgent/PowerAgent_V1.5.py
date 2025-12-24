@@ -24,12 +24,15 @@ from PyLTSpice import SimRunner, SpiceEditor, RawRead
 
 # --- Configuration ---
 MAX_ITERATIONS = 100
-MEMORY_FILE = "agent_memory.md"
 # Adjust paths to be absolute or relative to the script location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RESULTS_DIR = os.path.join(BASE_DIR, "experiment_results")
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
+MEMORY_FILE = os.path.join(RESULTS_DIR, "agent_memory.md")
 CIRCUIT_ASC_PATH = os.path.join(BASE_DIR, '..', 'Circuits', 'Buck_converter', 'Buck_converter_real.net')
-SIM_NETLIST_NAME = os.path.join(BASE_DIR, "Buck_converter_real_sim.net")
-RAW_FILE_NAME = os.path.join(BASE_DIR, "Buck_converter_real_sim.raw")
+SIM_NETLIST_NAME = os.path.join(RESULTS_DIR, "Buck_converter_real_sim.net")
+RAW_FILE_NAME = os.path.join(RESULTS_DIR, "Buck_converter_real_sim.raw")
 
 # --- Helper Functions ---
 
@@ -125,7 +128,7 @@ def simulate_circuit() -> str:
     """
     try:
         log_memory("**Tool Call (simulate_circuit):** Starting simulation...")
-        runner = SimRunner(output_folder=BASE_DIR)
+        runner = SimRunner(output_folder=RESULTS_DIR)
         
         if not os.path.exists(SIM_NETLIST_NAME):
              return "Error: Netlist file not found. Run update_circuit first."
@@ -390,7 +393,7 @@ def plot_comparison(initial_raw_path, final_raw_path):
             plt.grid(True, which='both', linestyle='--', alpha=0.6)
             plt.legend(fontsize=10)
             plt.tight_layout()
-            output_plot = os.path.join(BASE_DIR, "optimization_comparison.png")
+            output_plot = os.path.join(RESULTS_DIR, "optimization_comparison.png")
             plt.savefig(output_plot, dpi=300)
             print(f"Comparison plot saved to {output_plot}")
             log_memory(f"Comparison plot saved to {output_plot}")
@@ -405,7 +408,7 @@ def plot_comparison(initial_raw_path, final_raw_path):
             plt.grid(True, which='both', linestyle='--', alpha=0.6)
             plt.legend(fontsize=10)
             plt.tight_layout()
-            output_init = os.path.join(BASE_DIR, "optimization_initial.png")
+            output_init = os.path.join(RESULTS_DIR, "optimization_initial.png")
             plt.savefig(output_init, dpi=300)
             print(f"Initial plot saved to {output_init}")
             plt.close()
@@ -419,7 +422,7 @@ def plot_comparison(initial_raw_path, final_raw_path):
             plt.grid(True, which='both', linestyle='--', alpha=0.6)
             plt.legend(fontsize=10)
             plt.tight_layout()
-            output_final = os.path.join(BASE_DIR, "optimization_final.png")
+            output_final = os.path.join(RESULTS_DIR, "optimization_final.png")
             plt.savefig(output_final, dpi=300)
             print(f"Final plot saved to {output_final}")
             plt.close()
@@ -440,13 +443,13 @@ def main():
     
     # Run baseline simulation
     print("Running baseline simulation...")
-    runner = SimRunner(output_folder=BASE_DIR)
+    runner = SimRunner(output_folder=RESULTS_DIR)
     netlist = SpiceEditor(SIM_NETLIST_NAME)
     runner.run(netlist, run_filename=SIM_NETLIST_NAME)
     runner.wait_completion()
     
     # Save initial raw file
-    initial_raw_path = os.path.join(BASE_DIR, "initial_sim.raw")
+    initial_raw_path = os.path.join(RESULTS_DIR, "initial_sim.raw")
     if os.path.exists(RAW_FILE_NAME):
         shutil.copy(RAW_FILE_NAME, initial_raw_path)
         print(f"Baseline simulation saved to {initial_raw_path}")
