@@ -11,5 +11,6 @@ Then use the LLM to optimize the circuit
 I tryed on a simple RC circuit to change the tau constant
 
 
-## third experiment: PowerAgent: Buck converter
+## third experiment: PowerAgent: Buck converter: done? 23 Dec
 create the real AI-agent that should optimize the circuit parameters of a Buck converter
+Is strange it seems to easy for the agent. I have to check if it cheats
