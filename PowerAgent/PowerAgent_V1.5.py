@@ -477,7 +477,7 @@ def main():
     specifications = (
         "Optimize the Buck Converter circuit to achieve:\n"
         "1. Mean Output Voltage (V_mean) = 5V ± 0.1V\n"
-        "2. Output Ripple < 5% (approx < 0.25V)\n"
+        "2. Output Ripple < 1% (approx < 0.05V)\n"
         "3. Stable operation.\n\n"
         "You have access to tools to analyze, update, simulate, and measure the circuit.\n"
         "Start by analyzing the current circuit, then simulate to get a baseline.\n"
