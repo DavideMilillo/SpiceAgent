@@ -68,13 +68,32 @@ def analyze_circuit(circuit_path: str = None) -> str:
 
         netlist = SpiceEditor(circuit_path)
         components = netlist.get_components()
-        info = "Current Circuit Configuration (Base ASC):\n"
+        info = f"Current Circuit Configuration ({os.path.basename(circuit_path)}):\n"
+        
+        # 1. List Components
         for component in components:
             try:
                 val = netlist.get_component_value(component)
                 info += f"- {component}: {val}\n"
-            except:
-                pass
+            except Exception:
+                # If PyLTSpice fails to get the value (e.g. complex models like Q=...), 
+                # try to find the line in the netlist manually
+                found = False
+                with open(circuit_path, 'r') as f:
+                    for line in f:
+                        if line.strip().startswith(component):
+                            info += f"- {component}: {line.strip()}\n"
+                            found = True
+                            break
+                if not found:
+                    info += f"- {component}: <Error retrieving value>\n"
+
+        # 2. List Parameters
+        info += "\nParameters:\n"
+        with open(circuit_path, 'r') as f:
+            for line in f:
+                if line.strip().lower().startswith(".param"):
+                    info += f"{line.strip()}\n"
         
         log_memory(f"**Tool Call (analyze_circuit):**\n{info}")
         return info
