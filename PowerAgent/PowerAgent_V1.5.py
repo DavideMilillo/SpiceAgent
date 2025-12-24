@@ -340,9 +340,9 @@ def initial_state_circuit():
         'Vsw': 'PULSE(0 10 0 1n 1n 3.38u 10u)',
         'D1': 'MBR745',
         'M1': 'IRF1404',
-        'I_sat': '5',
+        'I_sat': '3',
         'C_min': '1u',
-        'V_coeff': '10'
+        'V_coeff': '5'
     }
     try:
         netlist = SpiceEditor(CIRCUIT_ASC_PATH)
