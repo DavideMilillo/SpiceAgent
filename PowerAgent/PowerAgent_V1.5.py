@@ -334,8 +334,8 @@ def initial_state_circuit():
     initial_values = {
         'Vin': '12',
         'Cin': '300u',
-        'L1': '10u',
-        'Cout': '10u',
+        'L1': '14u',
+        'Cout': '33u',
         'Rload': '6',
         'Vsw': 'PULSE(0 10 0 1n 1n 3.38u 10u)',
         'D1': 'MBR745',
