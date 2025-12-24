@@ -481,7 +481,9 @@ def main():
         "3. Stable operation.\n\n"
         "You have access to tools to analyze, update, simulate, and measure the circuit.\n"
         "Start by analyzing the current circuit, then simulate to get a baseline.\n"
-        "Iterate by adjusting L1, Cout, or other parameters until specs are met.\n"
+        "Iterate by adjusting L1, Cout, or other parameters until specs are met.\n" \
+        "You have to check carefully the results to make sure they exactly match the specifications.\n" \
+        "For instance a V_mean=5.16 V is NOT acceptable, you have to reach V_mean between 4.9V and 5.1V.\n\n"
         "If you achieve the goal, summarize the final component values and metrics."
     )
 
