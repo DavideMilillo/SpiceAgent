@@ -331,21 +331,21 @@ def should_continue(state: AgentState):
 def build_graph():
     workflow = StateGraph(AgentState)
     
-    workflow.add_node("agent", agent_node)
-    workflow.add_node("tools", tool_node)
+    workflow.add_node("SpiceAgent", agent_node)
+    workflow.add_node("LTSpice_and_Tools", tool_node)
     
-    workflow.set_entry_point("agent")
+    workflow.set_entry_point("SpiceAgent")
     
     workflow.add_conditional_edges(
-        "agent",
+        "SpiceAgent",
         should_continue,
         {
-            "continue": "tools",
+            "continue": "LTSpice_and_Tools",
             "end": END
         }
     )
     
-    workflow.add_edge("tools", "agent")
+    workflow.add_edge("LTSpice_and_Tools", "SpiceAgent")
     
     app = workflow.compile()
 
