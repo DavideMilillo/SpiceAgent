@@ -347,6 +347,14 @@ def build_graph():
     
     workflow.add_edge("tools", "agent")
     
+    # Save the graph visualization
+    try:
+        graph_img_path = os.path.join(RESULTS_DIR, "langgraph_structure.png")
+        app.get_graph().draw_mermaid_png(output_file_path=graph_img_path)
+        print(f"Graph structure saved to {graph_img_path}")
+    except Exception as e:
+        print(f"Could not save graph image (requires grandalf/pygraphviz): {e}")
+
     return workflow.compile()
 
 def initial_state_circuit():
