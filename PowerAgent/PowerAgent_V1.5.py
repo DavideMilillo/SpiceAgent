@@ -157,6 +157,31 @@ def simulate_circuit() -> str:
         runner.run(netlist, run_filename=SIM_NETLIST_NAME)
         runner.wait_completion()
         
+        # Check for log file errors and simulation completion
+        log_path = SIM_NETLIST_NAME.replace('.net', '.log')
+        log_content = ""
+        if os.path.exists(log_path):
+            with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                log_content = f.read()
+                
+            if "Error" in log_content or "Fatal" in log_content:
+                 return f"Simulation Failed. LTSpice Log:\n{log_content[-1000:]}" # Return last 1000 chars
+
+        # Verify simulation duration
+        if os.path.exists(RAW_FILE_NAME):
+            try:
+                ltr = RawRead(RAW_FILE_NAME)
+                steps = ltr.get_steps()
+                if steps:
+                    time_trace = ltr.get_trace('time').get_wave(steps[0])
+                    if len(time_trace) > 0:
+                        max_time = time_trace[-1]
+                        # We know the simulation should be 10ms (0.01s). Let's check if it reached at least 9ms.
+                        if max_time < 0.009:
+                            return f"Simulation ended prematurely at {max_time*1000:.3f}ms (expected 10ms). Likely convergence failure. Log:\n{log_content[-500:] if log_content else 'Log not found'}"
+            except Exception as read_err:
+                 return f"Simulation finished but raw file is unreadable: {read_err}. Log:\n{log_content[-500:] if log_content else 'Log not found'}"
+        
         log_memory("**Tool Call (simulate_circuit):** Simulation completed.")
         return f"Simulation finished. Output saved to {RAW_FILE_NAME}"
     except Exception as e:
