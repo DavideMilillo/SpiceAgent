@@ -347,6 +347,8 @@ def build_graph():
     
     workflow.add_edge("tools", "agent")
     
+    app = workflow.compile()
+
     # Save the graph visualization
     try:
         graph_img_path = os.path.join(RESULTS_DIR, "langgraph_structure.png")
@@ -355,7 +357,7 @@ def build_graph():
     except Exception as e:
         print(f"Could not save graph image (requires grandalf/pygraphviz): {e}")
 
-    return workflow.compile()
+    return app
 
 def initial_state_circuit():
     """
@@ -367,10 +369,10 @@ def initial_state_circuit():
     initial_values = {
         'Vin': '12',
         'Cin': '300u',
-        'L1': '4u', #14u
-        'Cout': '3u', #33u
+        'L1': '14u', #14u
+        'Cout': '20u', #33u
         'Rload': '6',
-        'Vsw': 'PULSE(0 10 0 1n 1n 7u 10u)',  #3.38
+        'Vsw': 'PULSE(0 10 0 1n 1n 5u 10u)',  #3.38
         'D1': 'MBR745',
         'M1': 'IRF1404',
         'I_sat': '3',
