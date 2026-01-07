@@ -4,6 +4,7 @@ An AI-agent for optimization of power electronics circuits using LangGraph.
 
 This agent optimizes a REAL buck converter to meet specific voltage and ripple requirements.
 It iteratively analyzes, simulates, and updates the circuit parameters.
+The Buck converter are modeled using non linear equations.
 
 Author: Davide Milillo 
 """
