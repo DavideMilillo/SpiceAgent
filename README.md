@@ -3,7 +3,7 @@
 AI-powered agent that optimizes LTSpice circuit designs autonomously.
 
 ## Overview
-SpiceAgent uses an LLM to analyze netlists, propose parameter modifications, and run LTSpice simulations iteratively until the circuit meets the target specifications.
+SpiceAgent uses an LLM to analyze netlists, propose parameter modifications, and run LTSpice simulations iteratively until the circuit meets the target specifications. The agent is capable of optimizing non-linear circuits and features a design tailored for effective human-machine interaction, allowing for collaborative circuit refinement.
 
 **Workflow:** Analyze → Propose → Simulate → Evaluate → Iterate
 
@@ -25,4 +25,6 @@ Experiments connecting Python code to the LTSpice executable.
 ## License
 MIT License
 
+## Author
+Davide Milillo
 
