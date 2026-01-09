@@ -85,12 +85,8 @@ Thanks for your interest in contributing! Here's how to get started.
 *   Improved circuit analysis and netlist parsing.
 *   Documentation improvements.
 *   New circuit topologies to optimize.
+*   New IDEA!
 
-### What to Avoid
-*   Large refactors without discussion (open an issue first).
-*   Adding heavy dependencies without justification.
-*   Committing `.env` files or API keys.
-*   Simulation output files (they should be ignored).
 
 ## Dependencies
 
@@ -107,6 +103,5 @@ See `requirements.txt` for exact versions.
 
 *   Open an issue on GitHub.
 *   Ask in pull request discussions.
-*   Check existing issues/PRs before opening duplicates.
 
 Happy contributing! 🚀
