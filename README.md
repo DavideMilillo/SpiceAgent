@@ -20,3 +20,44 @@ since the ideal buck was too easy to optimize (with analytical formulas).
 The agent shows good results and abilitty to reason, iterate and
 so make an empirical optimization of the circuit.
 
+
+#new version of README
+# SpiceAgent
+
+AI-powered agent that optimizes LTSpice circuit designs automatically.
+
+## What is SpiceAgent?
+
+SpiceAgent is an LLM-based agent that:
+- **Reads** circuit netlists (SPICE)
+- **Proposes** parameter modifications using AI
+- **Simulates** changes with LTSpice
+- **Iterates** to optimize circuit performance
+
+Instead of manually tweaking component values 20+ times, SpiceAgent does it autonomously.
+
+
+
+Project Structure
+PowerAgent/ - Main circuit optimization agent (Buck converter with non-linear models)
+
+BabySpiceAgent/ - Simplified prototype (RC circuit optimization)
+
+PyLTSpice/ - PyLTSpice integration examples
+
+Circuits/ - Sample circuit files
+
+How It Works:
+Analyze netlist → Propose changes (LLM) → Simulate (LTSpice) → Evaluate → Iterate
+The agent reasons about circuit behavior and iteratively refines parameters until it converges.
+
+
+See CONTRIBUTING.md for detailed guidelines.
+
+License
+MIT License - see LICENSE file.
+
+
+Author
+Davide Milillo - @DavideMilillo
+
