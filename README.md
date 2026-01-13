@@ -7,24 +7,67 @@ SpiceAgent uses an LLM to analyze netlists, propose parameter modifications, and
 
 **Workflow:** Analyze → Propose → Simulate → Evaluate → Iterate
 
+## Installation
+
+You can install SpiceAgent directly from the source:
+
+```bash
+git clone https://github.com/DavideMilillo/SpiceAgent.git
+cd SpiceAgent
+pip install .
+```
+
+## Quick Start (V2)
+
+The recommended way to use SpiceAgent is via the `PowerAgent` class:
+
+```python
+from spiceagent import PowerAgent
+
+# 1. Initialize the agent
+agent = PowerAgent(api_key="sk-...")
+
+# 2. Define your initial guess and targets
+initial_values = {
+    'Vin': '12', 
+    'Cin': '300u', 
+    'L1': '14u', 
+    'Cout': '30u', 
+    'Rload': '6', 
+    'Vsw': 'PULSE(0 10 0 1n 1n 5u 10u)',
+    'D1': 'MBR745', 
+    'M1': 'IRF1404'
+}
+
+targets = {
+    "v_mean": 5.0,  # Target output voltage (Volts)
+    "ripple": 1.0   # Maximum ripple allowed (%)
+}
+
+# 3. Run Optimization
+# If circuit_path is None, it uses the built-in Buck Converter example.
+result = agent.optimize(
+    circuit_path=None, 
+    initial_values=initial_values,
+    target_specs=targets
+)
+
+print("Optimization Complete!")
+print("Final Values:", result.get("circuit_values"))
+```
+
 ## Project Structure
 
-### 🔌 PowerAgent (Main)
-The core agent using LangGraph to optimize non-linear Buck converters. It performs empirical optimization using a non-linear model for inductors and capacitors.
-*   `PowerAgent/PowerAgent_LangGraph.py`: Main agent logic.
-*   `PowerAgent/PowerAgent_V1.5.py`: Optimization setup for the real component model.
+### 📦 SpiceAgent Package (New Standard)
+*   `src/spiceagent/`: The source code of the package.
+*   `src/spiceagent/power_agent.py`: The main `PowerAgent` class logic.
 
-### 👶 Baby SpiceAgent
-A simple prototype for analyzing and optimizing basic RC circuits.
-*   `BabySpiceAgent/Baby_SpiceAgent.py`
-
-### 🛠️ PyLTSpice Integration
-Experiments connecting Python code to the LTSpice executable.
-*   `PyLTSpice/`
+### 🔌 Legacy Scripts (V1)
+*   `PowerAgent/`: Contains the original V1.5 script and LangGraph experiments.
+*   `BabySpiceAgent/`: Simple RC circuit prototype.
 
 ## License
 MIT License
 
 ## Author
 Davide Milillo
-
