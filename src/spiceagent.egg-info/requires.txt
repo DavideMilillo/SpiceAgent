@@ -1,6 +1,0 @@
-numpy
-matplotlib
-langchain
-langchain-openai
-langgraph
-PyLTSpice
