@@ -1,0 +1,12 @@
+LICENSE
+MANIFEST.in
+README.md
+pyproject.toml
+src/ltspice_agent.egg-info/PKG-INFO
+src/ltspice_agent.egg-info/SOURCES.txt
+src/ltspice_agent.egg-info/dependency_links.txt
+src/ltspice_agent.egg-info/requires.txt
+src/ltspice_agent.egg-info/top_level.txt
+src/spiceagent/__init__.py
+src/spiceagent/power_agent.py
+src/spiceagent/resources/Buck_converter_real.asc
