@@ -272,11 +272,15 @@ class PowerAgent:
         app = workflow.compile()
 
         # 6. Run
+        print(f"DEBUG: Starting optimization with initial values: {initial_values}")
+        print(f"DEBUG: Target Specs: {target_specs}")
+
         system_msg = (
             "You are an expert power electronics agent.\n"
             f"Goal: V_mean = {target_specs['v_mean']}V, "
             f"Ripple < {target_specs.get('ripple', 1.0)}%.\n"
-            "Analyze -> Simulate -> Calculate Metrics -> Update -> Repeat."
+            "Analyze -> Simulate -> Calculate Metrics -> Update -> Repeat.\n"
+            f"Initial Circuit State: {initial_values}"
         )
         
         initial_state = {
@@ -287,10 +291,20 @@ class PowerAgent:
 
         final_state = initial_state
         print(f"Starting V2 optimization in {output_dir}...")
-        for event in app.stream(initial_state, config={"recursion_limit": max_iterations}):
-            for k, v in event.items():
-                if "circuit_values" in v:
-                    final_state = v 
-                pass
-
+        try:
+            for event in app.stream(initial_state, config={"recursion_limit": max_iterations}):
+                for k, v in event.items():
+                    if "circuit_values" in v:
+                        final_state = v 
+                    # Optional: print step info
+                    if "messages" in v:
+                         msg = v["messages"][-1]
+                         if hasattr(msg, "content") and msg.content:
+                             print(f"Agent: {msg.content}")
+                         if hasattr(msg, "tool_calls") and msg.tool_calls:
+                             print(f"Tool Call: {msg.tool_calls[0]['name']}")
+        except Exception as e:
+             # Capture the recursion limit or other errors to return the partial state
+             print(f"Optimization stopped (e.g. recursion limit): {e}")
+             
         return final_state
