@@ -26,8 +26,8 @@ def main():
     initial_values = {
         'Vin': '12', 
         'Cin': '300u', 
-        'L1': '14u', 
-        'Cout': '35u', 
+        'L1': '20u', 
+        'Cout': '40u', 
         'Rload': '6', 
         'Vsw': 'PULSE(0 10 0 1n 1n 4u 10u)',
         'D1': 'MBR745', 
@@ -43,7 +43,7 @@ def main():
         # We run with max_iterations=20 to verify the full flow
         result = agent.optimize(
             initial_values=initial_values,
-            target_specs={"v_mean": 5.0, "ripple": 1.0},
+            target_specs={"v_mean": 5.0, "ripple": 10},
             max_iterations=20, 
             output_dir=test_dir
         )
