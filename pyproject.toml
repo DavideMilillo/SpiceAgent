@@ -9,7 +9,7 @@ description = "An AI-agent for optimization of power electronics circuits"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-  {name = "Davide Milillo", email = "your.email@example.com"}
+  {name = "Davide Milillo", email = "davidemichele2001@gmail.com"}
 ]
 keywords = ["spice", "optimization", "ai", "power electronics"]
 license = {file = "LICENSE"}
