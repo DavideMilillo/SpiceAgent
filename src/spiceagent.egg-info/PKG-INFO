@@ -1,0 +1,117 @@
+Metadata-Version: 2.4
+Name: spiceagent
+Version: 0.1.0
+Summary: An AI-agent for optimization of power electronics circuits
+Author-email: Davide Milillo <davidemichele2001@gmail.com>
+License: MIT License
+        
+        Copyright (c) 2025 Davide_Milillo
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://github.com/DavideMilillo/SpiceAgent
+Project-URL: Repository, https://github.com/DavideMilillo/SpiceAgent
+Keywords: spice,optimization,ai,power electronics
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: langchain
+Requires-Dist: langchain-openai
+Requires-Dist: langgraph
+Requires-Dist: PyLTSpice
+Dynamic: license-file
+
+# SpiceAgent
+
+AI-powered agent that optimizes LTSpice circuit designs autonomously.
+
+## Overview
+SpiceAgent uses an LLM to analyze netlists, propose parameter modifications, and run LTSpice simulations iteratively until the circuit meets the target specifications. The agent is capable of optimizing non-linear circuits and features a design tailored for effective human-machine interaction, allowing for collaborative circuit refinement.
+
+**Workflow:** Analyze → Propose → Simulate → Evaluate → Iterate
+
+## Installation
+
+You can install SpiceAgent directly from the source:
+
+```bash
+git clone https://github.com/DavideMilillo/SpiceAgent.git
+cd SpiceAgent
+pip install .
+```
+
+## Quick Start (V2)
+
+The recommended way to use SpiceAgent is via the `PowerAgent` class:
+
+```python
+from spiceagent import PowerAgent
+
+# 1. Initialize the agent
+agent = PowerAgent(api_key="sk-...")
+
+# 2. Define your initial guess and targets
+initial_values = {
+    'Vin': '12', 
+    'Cin': '300u', 
+    'L1': '14u', 
+    'Cout': '30u', 
+    'Rload': '6', 
+    'Vsw': 'PULSE(0 10 0 1n 1n 5u 10u)',
+    'D1': 'MBR745', 
+    'M1': 'IRF1404'
+}
+
+targets = {
+    "v_mean": 5.0,  # Target output voltage (Volts)
+    "ripple": 1.0   # Maximum ripple allowed (%)
+}
+
+# 3. Run Optimization
+# If circuit_path is None, it uses the built-in Buck Converter example.
+result = agent.optimize(
+    circuit_path=None, 
+    initial_values=initial_values,
+    target_specs=targets
+)
+
+print("Optimization Complete!")
+print("Final Values:", result.get("circuit_values"))
+```
+
+## Project Structure
+
+### 📦 SpiceAgent Package (New Standard)
+*   `src/spiceagent/`: The source code of the package.
+*   `src/spiceagent/power_agent.py`: The main `PowerAgent` class logic.
+
+### 🔌 Legacy Scripts (V1)
+*   `PowerAgent/`: Contains the original V1.5 script and LangGraph experiments.
+*   `BabySpiceAgent/`: Simple RC circuit prototype.
+
+## License
+MIT License
+
+## Author
+Davide Milillo

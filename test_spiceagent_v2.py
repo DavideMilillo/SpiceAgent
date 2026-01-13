@@ -6,9 +6,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'src'
 
 try:
     from spiceagent import PowerAgent
-    print("✅ Successfully imported PowerAgent from spiceagent package.")
+    print("[OK] Successfully imported PowerAgent from spiceagent package.")
 except ImportError as e:
-    print(f"❌ Failed to import PowerAgent: {e}")
+    print(f"[ERROR] Failed to import PowerAgent: {e}")
     sys.exit(1)
 
 def main():
@@ -16,7 +16,7 @@ def main():
     # NOTE: You need to set your API Key here or in environment variables
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        print("⚠️  Warning: OPENAI_API_KEY not found in environment.")
+        print("[WARN] Warning: OPENAI_API_KEY not found in environment.")
         print("   If you want to run the full agent, please set it.")
         # We continue just to test the class instantiation
     
@@ -48,10 +48,10 @@ def main():
             max_iterations=1, 
             output_dir=test_dir
         )
-        print("✅ optimize() method executed successfully.")
+        print("[OK] optimize() method executed successfully.")
         print(f"Result keys: {result.keys()}")
     except Exception as e:
-        print(f"❌ Error during optimization: {e}")
+        print(f"[ERROR] Error during optimization: {e}")
 
 if __name__ == "__main__":
     main()
