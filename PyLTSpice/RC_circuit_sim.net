@@ -1,7 +1,0 @@
-* c:\Users\david\Desktop\PhD\progetti\SpiceAgent\PyLTSpice\RC_circuit.asc
-R1 N002 N001 10k
-C1 N002 0 100n
-V1 N001 0 V
-.tran 10m
-.backanno
-.end
