@@ -17,6 +17,9 @@ cd SpiceAgent
 pip install .
 ```
 
+Or, you can install directly the python package: https://pypi.org/project/ltspice-agent/0.1.0/
+pip install ltspice-agent==0.1.0
+
 ## Quick Start (V2)
 
 The recommended way to use SpiceAgent is via the `PowerAgent` class:
