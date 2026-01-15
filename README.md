@@ -35,9 +35,9 @@ initial_values = {
     'Vin': '12', 
     'Cin': '300u', 
     'L1': '14u', 
-    'Cout': '30u', 
+    'Cout': '38u', 
     'Rload': '6', 
-    'Vsw': 'PULSE(0 10 0 1n 1n 5u 10u)',
+    'Vsw': 'PULSE(0 10 0 1n 1n 4.4u 10u)',
     'D1': 'MBR745', 
     'M1': 'IRF1404'
 }
