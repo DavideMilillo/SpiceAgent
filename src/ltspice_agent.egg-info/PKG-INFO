@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: ltspice-agent
-Version: 0.1.0
+Version: 0.1.1
 Summary: An AI-agent for optimization of power electronics circuits
 Author-email: Davide Milillo <davidemichele2001@gmail.com>
 License: MIT License
@@ -61,6 +61,9 @@ cd SpiceAgent
 pip install .
 ```
 
+Or, you can install directly the python package: https://pypi.org/project/ltspice-agent/0.1.0/
+pip install ltspice-agent==0.1.0
+
 ## Quick Start (V2)
 
 The recommended way to use SpiceAgent is via the `PowerAgent` class:
@@ -76,24 +79,26 @@ initial_values = {
     'Vin': '12', 
     'Cin': '300u', 
     'L1': '14u', 
-    'Cout': '30u', 
+    'Cout': '38u', 
     'Rload': '6', 
-    'Vsw': 'PULSE(0 10 0 1n 1n 5u 10u)',
+    'Vsw': 'PULSE(0 10 0 1n 1n 4.4u 10u)',
     'D1': 'MBR745', 
     'M1': 'IRF1404'
 }
 
 targets = {
     "v_mean": 5.0,  # Target output voltage (Volts)
-    "ripple": 1.0   # Maximum ripple allowed (%)
+    "ripple": 10   # Maximum ripple allowed (%)
 }
 
 # 3. Run Optimization
 # If circuit_path is None, it uses the built-in Buck Converter example.
+# You can increase max_iterations if the agent needs more steps.
 result = agent.optimize(
     circuit_path=None, 
     initial_values=initial_values,
-    target_specs=targets
+    target_specs=targets,
+    max_iterations=50
 )
 
 print("Optimization Complete!")
@@ -109,6 +114,9 @@ print("Final Values:", result.get("circuit_values"))
 ### 🔌 Legacy Scripts (V1)
 *   `PowerAgent/`: Contains the original V1.5 script and LangGraph experiments.
 *   `BabySpiceAgent/`: Simple RC circuit prototype.
+
+## Changelog
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## License
 MIT License
