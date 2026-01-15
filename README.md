@@ -71,6 +71,9 @@ print("Final Values:", result.get("circuit_values"))
 *   `PowerAgent/`: Contains the original V1.5 script and LangGraph experiments.
 *   `BabySpiceAgent/`: Simple RC circuit prototype.
 
+## Changelog
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
 ## License
 MIT License
 
