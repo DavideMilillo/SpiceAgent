@@ -44,15 +44,17 @@ initial_values = {
 
 targets = {
     "v_mean": 5.0,  # Target output voltage (Volts)
-    "ripple": 1.0   # Maximum ripple allowed (%)
+    "ripple": 10   # Maximum ripple allowed (%)
 }
 
 # 3. Run Optimization
 # If circuit_path is None, it uses the built-in Buck Converter example.
+# You can increase max_iterations if the agent needs more steps.
 result = agent.optimize(
     circuit_path=None, 
     initial_values=initial_values,
-    target_specs=targets
+    target_specs=targets,
+    max_iterations=50
 )
 
 print("Optimization Complete!")
