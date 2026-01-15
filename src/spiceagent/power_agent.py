@@ -187,7 +187,8 @@ class PowerAgent:
         initial_values: Optional[Dict[str, str]] = None,
         target_specs: Optional[Dict[str, float]] = None,
         max_iterations: int = 20,
-        output_dir: str = "spiceagent_results"
+        output_dir: str = "spiceagent_results",
+        v_mean_tolerance: float = 0.1
     ) -> Dict[str, Any]:
         
         # 1. Setup
@@ -277,7 +278,7 @@ class PowerAgent:
 
         system_msg = (
             "You are an expert power electronics agent.\n"
-            f"Goal: V_mean = {target_specs['v_mean']}V, "
+            f"Goal: V_mean = {target_specs['v_mean']}V (+/- {v_mean_tolerance}V), "
             f"Ripple < {target_specs.get('ripple', 1.0)}%.\n"
             "Analyze -> Simulate -> Calculate Metrics -> Update -> Repeat.\n"
             f"Initial Circuit State: {initial_values}"
