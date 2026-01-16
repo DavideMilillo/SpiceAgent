@@ -284,10 +284,15 @@ def engineer_node(state: EngineerState):
     specs = state['specs']
     
     # Prefix context
+    # Create a metrics hint from the specs if not directly present
+    metrics_hint = specs.get('metric_extraction_hint', 
+                             f"Metrics to target: {specs.get('metrics', 'Check goal')}. "
+                             f"Output Node: {specs.get('output_node', 'unknown')}")
+
     context = (
-        f"Specs: {specs['optimization_goals']}\n"
-        f"Tunable Params: {specs['tunable_parameters']}\n"
-        f"Metrics Hint: {specs['metric_extraction_hint']}\n"
+        f"Specs: {specs.get('optimization_goals', 'Meet requirements')}\n"
+        f"Tunable Params: {specs.get('tunable_parameters', [])}\n"
+        f"Metrics Hint: {metrics_hint}\n"
         f"Iteration: {iteration}"
     )
     
