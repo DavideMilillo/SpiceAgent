@@ -17,7 +17,8 @@ import ast
 import traceback
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import TypedDict, Annotated, List, Dict, Any, Union, Optional
+from typing import Annotated, List, Dict, Any, Union, Optional
+from typing_extensions import TypedDict
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langchain_core.tools import tool
