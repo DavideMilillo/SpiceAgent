@@ -32,8 +32,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(BASE_DIR, "results_v3")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-# Set API Key if not already in env (User is expected to have this set)
-# os.environ["OPENAI_API_KEY"] = "sk-..." 
 
 # --- Shared Utilities ---
 
@@ -450,10 +448,26 @@ def run_engineer_phase(specs: OptimizationSpecs):
         "4. Repeat until goals are met or max iterations reached.\n\n"
         "IMPORTANT on Python Scripting:\n"
         " - Always assign the final dict of values to variable `metrics`.\n"
-        " - Example:\n"
+        " - Available in scope: `raw_path`, `RawRead`, `np`.\n"
+        " - PyLTSpice Usage CHEATSHEET (Use this structure):\n"
+        "   ```python\n"
         "   LTR = RawRead(raw_path)\n"
-        "   v = LTR.get_trace('V(n001)').get_wave(0)\n"
-        "   metrics = {'v_mean': np.mean(v)}\n"
+        "   # 1. Get dictionary of trace names to find exact node name (e.g. V(n002))\n"
+        "   # print(LTR.get_trace_names())\n"
+        "   \n"
+        "   # 2. Extract Time and Voltage vectors (step 0 for transients)\n"
+        "   steps = LTR.get_steps()\n"
+        "   t = LTR.get_trace('time').get_wave(steps[0])\n"
+        "   v_node = LTR.get_trace('V(out)').get_wave(steps[0])\n"
+        "   \n"
+        "   # 3. Process Data (e.g. steady state last 30%)\n"
+        "   cut_idx = int(len(t) * 0.7)\n"
+        "   v_ss = v_node[cut_idx:]\n"
+        "   metrics = {\n"
+        "       'v_mean': np.mean(v_ss),\n"
+        "       'ripple_pp': np.ptp(v_ss) # peak-to-peak\n"
+        "   }\n"
+        "   ```\n"
     )
 
     initial_state: EngineerState = {
