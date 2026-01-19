@@ -198,7 +198,10 @@ def consultant_node(state: ConsultantState):
         "   - Which nodes/traces correspond to these goals (e.g. 'Is V(n001) the output?').\n"
         "3. Once you have ALL info, output the FINAL CONFIRMATION in this format:\n"
         "   'READY_TO_OPTIMIZE: {JSON_representation_of_OptimizationSpecs}'\n"
-        "   Make sure tunable_parameters are exact names found in the file."
+        "   Make sure tunable_parameters are exact names found in the file.\n"
+        "   IMPORTANT: If the user asks to tune a property of a complex component (e.g. 'Duty Cycle', 'Ton', or 'Period' of Vsw), "
+        "   you MUST list the COMPONENT NAME (e.g. 'Vsw') in the `tunable_parameters` list, not the abstract property name. "
+        "   The Engineer will handle the detailed parameterization."
     )
     
     messages = [SystemMessage(content=system_prompt)] + state['messages']
