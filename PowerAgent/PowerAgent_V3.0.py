@@ -15,6 +15,7 @@ import operator
 import shutil
 import ast
 import traceback
+import re
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Annotated, List, Dict, Any, Union, Optional
@@ -38,6 +39,91 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 
 def clean_filename(path: str) -> str:
     return os.path.basename(path)
+
+def parameterize_netlist(netlist_path: str, tunable_components: List[str]) -> List[str]:
+    """
+    Modifies the netlist to use parameters for the specified components.
+    Returns the new list of tunable parameter names.
+    This implements 'Solution 3' (Pre-processing/Parameterization) to make the circuit 'Agent-Friendly'.
+    """
+    try:
+        net = SpiceEditor(netlist_path)
+        new_tunable = []
+        
+        # Read raw content to find .params and component definitions
+        with open(netlist_path, 'r', encoding='latin-1') as f:
+            content = f.read()
+
+        updates_made = False
+
+        for comp in tunable_components:
+            # 1. Get current definition
+            try:
+                val = net.get_component_value(comp)
+            except:
+                # Fallback for complex lines using regex
+                val = ""
+                match = re.search(f"^{comp}\\s+.*$", content, re.MULTILINE)
+                if match:
+                    val = match.group(0)
+
+            # Case A: PULSE Source (Vsw)
+            if "PULSE" in val:
+                # Pattern: PULSE(v1 v2 td tr tf ton per)
+                clean_val = val.replace(',', ' ')
+                m = re.search(r"PULSE\((.*?)\)", clean_val)
+                if m:
+                    args = m.group(1).split()
+                    if len(args) >= 7:
+                        # ton is index 5
+                        ton = args[5]
+                        
+                        param_name = f"Ton_{comp}"
+                        
+                        # Create param
+                        net.set_parameter(param_name, ton)
+                        
+                        # Update component model to use {Ton_comp}
+                        args[5] = f"{{{param_name}}}"
+                        new_args = " ".join(args)
+                        new_model = f"PULSE({new_args})"
+                        
+                        net.set_element_model(comp, new_model)
+                        new_tunable.append(param_name)
+                        updates_made = True
+                        continue
+
+            # Case B: Already Parameterized (Cout with {C_nom}, etc)
+            if "{" in val and "}" in val:
+                vars_found = re.findall(r"\{(\w+)\}", val)
+                # Heuristic: If 'C_nom' is present (common pattern), use it
+                if 'C_nom' in vars_found:
+                     new_tunable.append('C_nom')
+                     continue
+                if len(vars_found) == 1:
+                    new_tunable.append(vars_found[0])
+                    continue
+
+            # Case C: Standard Value (Rload 6, Cin 300u)
+            # If value is simple number/string without spaces (and not a model like 'NMOS')
+            if re.match(r"^[0-9\-\+\.a-zA-Z]+$", val) and " " not in val:
+                 param_name = f"val_{comp}"
+                 net.set_parameter(param_name, val)
+                 net.set_component_value(comp, f"{{{param_name}}}")
+                 new_tunable.append(param_name)
+                 updates_made = True
+                 continue
+            
+            # Fallback: keep original
+            new_tunable.append(comp)
+
+        if updates_made:
+            net.write_netlist(netlist_path)
+            
+        return new_tunable
+    except Exception as e:
+        print(f"Warning: Auto-parameterization failed: {e}")
+        return tunable_components
 
 # =================================================================================================
 # STAGE 1: THE CONSULTANT (Requirement Gathering)
@@ -434,6 +520,14 @@ def run_engineer_phase(specs: OptimizationSpecs):
     try:
         net = SpiceEditor(original_net)
         net.write_netlist(target_net)
+        
+        # --- SOLUTION 3: Pre-processing / Parameterization ---
+        # Automatically convert hardcoded components to parameters so the Agent can tune them easily.
+        print("  -> Applying circuit parameterization...")
+        new_params = parameterize_netlist(target_net, specs['tunable_parameters'])
+        specs['tunable_parameters'] = new_params
+        print(f"  -> Tunable parameters updated: {new_params}")
+        
     except Exception as e:
         print(f"Error initializing netlist: {e}")
         return
