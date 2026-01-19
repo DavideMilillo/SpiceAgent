@@ -40,6 +40,12 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 def clean_filename(path: str) -> str:
     return os.path.basename(path)
 
+#TEMPORAL SOLUTION
+#I DON'T LIKE IT BUT IT WORKS FOR NOW
+#It is hard coded and designed for a specific case
+# it may not work if I change converter or other things
+# Here we need a smart agent that given the human-like specification 
+#translates to the actual netlist parameters based on the circuit analysis
 def parameterize_netlist(netlist_path: str, tunable_components: List[str]) -> List[str]:
     """
     Modifies the netlist to use parameters for the specified components.
