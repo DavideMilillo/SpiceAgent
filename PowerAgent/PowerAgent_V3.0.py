@@ -152,7 +152,7 @@ class OptimizationSpecs(TypedDict):
     target_netlist: str
     target_raw: str
     tunable_parameters: List[str] # List of components/params to change (e.g. ['R1', 'C1', '{param}duty'])
-    optimization_goals: str # Human readable goals (e.g. "Vout=5V, Ripple<10mV")
+    optimization_goals: Union[str, Dict[str, Any]] # Human readable goals or structured dict
     metric_extraction_hint: str # Instructions for the code generator (e.g. "Trace is V(n001)")
 
 class ConsultantState(TypedDict):
@@ -397,9 +397,12 @@ def engineer_node(state: EngineerState):
     
     # Prefix context
     # Create a metrics hint from the specs if not directly present
+    # Handle case where output_node is top level or inside metric hint
+    out_node = specs.get('output_node', 'unknown')
+    
     metrics_hint = specs.get('metric_extraction_hint', 
-                             f"Metrics to target: {specs.get('metrics', 'Check goal')}. "
-                             f"Output Node: {specs.get('output_node', 'unknown')}")
+                             f"Metrics to target: {specs.get('optimization_goals', 'Check goal')}. "
+                             f"Output Node: {out_node}")
 
     context = (
         f"Specs: {specs.get('optimization_goals', 'Meet requirements')}\n"
@@ -532,7 +535,10 @@ def run_consultant_phase(circuit_path: str):
 
 def run_engineer_phase(specs: OptimizationSpecs):
     print("\n--- PHASE 2: ENGINEER ---")
-    print(f"Goal: {specs['optimization_goals']}")
+    # Fallback if key missing or named differently by LLM
+    goals = specs.get('optimization_goals') or specs.get('optimization_goal') or "Optimize Circuit"
+    print(f"Goal: {goals}")
+    specs['optimization_goals'] = goals # Normalize key
     
     # Setup working env
     work_dir = RESULTS_DIR
