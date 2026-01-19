@@ -33,9 +33,20 @@ from PyLTSpice import SimRunner, SpiceEditor, RawRead
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(BASE_DIR, "results_v3")
 os.makedirs(RESULTS_DIR, exist_ok=True)
-
+MEMORY_FILE = os.path.join(RESULTS_DIR, "Agent_Memory_V3.0.md")
 
 # --- Shared Utilities ---
+
+def log_memory(message: str):
+    """Logs a message to the Agent_Memory_V3.0.md file."""
+    with open(MEMORY_FILE, "a", encoding="utf-8") as f:
+        f.write(f"{message}\n\n")
+
+def reset_memory():
+    """Resets the Agent_Memory_V3.0.md file."""
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+        f.write("# PowerAgent V3.0 Memory Log\n\n")
+
 
 def clean_filename(path: str) -> str:
     return os.path.basename(path)
@@ -216,6 +227,7 @@ def consultant_node(state: ConsultantState):
     model = model.bind_tools([analyze_circuit_structure])
     
     response = model.invoke(messages)
+    log_memory(f"**[Consultant]**: {response.content}")
     return {"messages": [response]}
 
 def tools_consultant_node(state: ConsultantState):
@@ -293,7 +305,9 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str):
                              log.append(f"Failed to update {name}: {e}")
             
             netlist.write_netlist(netlist_path)
-            return "Updates applied:\n" + "\n".join(log)
+            log_str = "Updates applied:\n" + "\n".join(log)
+            log_memory(f"**[Engineer Tool Update]**: {log_str}")
+            return log_str
         except Exception as e:
             return f"Error updating circuit: {e}"
 
@@ -312,7 +326,9 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str):
             if os.path.exists(raw_path):
                 # Verify file size/validity briefly
                 if os.path.getsize(raw_path) > 0:
-                    return f"Simulation success. Output: {os.path.basename(raw_path)}"
+                    msg = f"Simulation success. Output: {os.path.basename(raw_path)}"
+                    log_memory(f"**[Engineer Tool Sim]**: {msg}")
+                    return msg
                 else:
                     return "Simulation failed: Empty RAW file."
             else:
@@ -359,6 +375,7 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str):
             metrics = local_scope.get('metrics', {})
             
             if metrics:
+                log_memory(f"**[Engineer Tool Metrics]**: {metrics}")
                 return f"Computed Metrics: {metrics}"
             else:
                 return "Script ran but 'metrics' dictionary was empty. Ensure your script assigns result to variable 'metrics'."
@@ -547,14 +564,15 @@ def run_engineer_phase(specs: OptimizationSpecs):
     
     # System Instruction for Engineer
     engineer_sys_prompt = (
-        "You are an Autonomous Power Engineering Agent.\n"
+        "You are a 'Human-in-the-Loop' Power Engineering Assistant.\n"
+        "Your goal is to help your human user optimize the circuit, but you acknowledge they are smarter than you.\n"
         "You operate in a loop:\n"
         "1. Update Circuit: Adjust 'tunable_parameters' to move towards goal.\n"
         "2. Simulate: Run the simulation.\n"
         "3. Evaluate: Write PYTHON CODE to inspect the RAW file and extract metrics.\n"
-        "   - Use `RawRead` from PyLTSpice.\n"
-        "   - Calculate errors relative to goals.\n" 
-        "4. Repeat until goals are met or max iterations reached.\n\n"
+        "4. REPORT & PAUSE: If you are unsure, stuck, or if an adjustment didn't have the expected effect (e.g. Vout didn't change), "
+        "   STOP and ask the human for guidance. Do NOT loop aimlessly. \n"
+        "5. SUCCESS: If goals are met, Report success and ask for confirmation.\n\n"
         "IMPORTANT on Python Scripting:\n"
         " - Always assign the final dict of values to variable `metrics`.\n"
         " - Available in scope: `raw_path`, `RawRead`, `np`.\n"
@@ -597,17 +615,20 @@ def run_engineer_phase(specs: OptimizationSpecs):
     
     def should_continue_engineer(state):
         last_msg = state['messages'][-1]
+        
+        # 1. If tool called, run tool
         if last_msg.tool_calls:
             return "tools"
-        # Since engineer is autonomous, if it didn't call a tool, it might be done or confused.
-        # We check content for "OPTIMIZATION COMPLETE" or similar, otherwise loop?
-        # Ideally it always calls tools until done.
-        # Let's force it to end if it says "DONE"
-        if "optimization complete" in last_msg.content.lower():
-            return END
-        if state['iteration'] > 20:
-             return END
-        return END # Safety break if no tool called, usually implies question or error
+            
+        # 2. If Agent asks question or stops, we break to Human Input
+        # Heuristic: If it doesn't call a tool, it's talking to us.
+        # We need a new pattern: Agent -> Human -> Agent
+        # But 'state' doesn't auto-read human input unless we add a node for it.
+        # For simplicity in this script: we return END to break the .stream() loop,
+        # then we prompt user in the main loop, then we re-invoke. 
+        # So essentially: No Tool = Wait for Human.
+        
+        return END
 
     workflow.add_conditional_edges("engineer", should_continue_engineer, {"tools": "tools", END: END})
     workflow.add_edge("tools", "engineer")
@@ -615,15 +636,83 @@ def run_engineer_phase(specs: OptimizationSpecs):
     
     app = workflow.compile()
     
-    print("Engineer Agent is running...(this may take time)")
-    for event in app.stream(initial_state, config={"recursion_limit": 50}):
-        pass # Stream execution
-        if 'engineer' in event:
-            msg = event['engineer']['messages'][-1]
-            print(f"\n[Engineer]: {msg.content}")
+    print("Engineer Agent is running... (Type 'exit' to quit)")
+    
+    # Main 'Human-in-the-loop' Engine
+    # We keep the state object outside the stream loop
+    current_state = initial_state
+    
+    while True:
+        # Run until the Agent stops to talk (returns END)
+        for event in app.stream(current_state, config={"recursion_limit": 50}):
+            if 'engineer' in event:
+                msg = event['engineer']['messages'][-1]
+                print(f"\n[Engineer]: {msg.content}")
+                log_memory(f"**[Engineer]**: {msg.content}")
+                
+                # Update current_state with the result of this step
+                # Note: langgraph stream returns the chunk, not full state accumulation automatically 
+                # unless we manage it. 
+                # Actually app.stream yields dictionaries of {node: output}. 
+                # We need to capture the final output state to resume.
+                # However, app.stream doesn't yield the full state object easily for re-entry 
+                # in a while loop if we break.
+                # BETTER APPROACH: Use app.invoke or keep updating 'current_state' via a persistent check object?
+                # LangGraph is stateful if using checkpointer, but here we are in-memory.
+                
+                # We can't easily "resume" a stream from the middle if we break out of it 
+                # unless we pass the modified state back in. 
+                # The 'event' contains the node output. We need to merge it.
+                
+                # Let's trust the graph to run until it hits END (which we defined as "No Tool").
+                # Then we take the last state from the graph execution? 
+                pass
+            
+            if 'tools' in event:
+                # Tool output
+                pass
+        
+        # At this point, the Agent has finished a turn (didn't call tool).
+        # We need to get the LAST state to append our message. 
+        # Since we can't easily extract full state from stream iteration, 
+        # let's run .invoke() instead of stream for the "Step" logic?
+        # Or just rebuild state? 
+        
+        # Workaround for this script structure (Simple StateGraph):
+        # We can't easily capture the final state *after* the stream ends without checkpointer.
+        # So we will modify the graph to NOT loop automatically?
+        # Alternatively, we just use `app.invoke(current_state)` which runs until END.
+        
+        result = app.invoke(current_state)
+        current_state = result 
+        
+        last_msg = current_state['messages'][-1]
+        
+        # If the last message was a tool call, the graph shouldn't have stopped (per logic above).
+        # If it stopped, it means it returned END, so no tool call.
+        
+        # Check if user wants to exit
+        if "optimization complete" in last_msg.content.lower():
+             print("\nOptimization Finished.")
+             # We still let the user confirm or exit
+        
+        # Get Human Input
+        print("\n[Help the Agent]: ", end="")
+        user_in = input()
+        
+        if user_in.lower() in ["exit", "quit"]:
+            break
+            
+        # Append User message to state and loop
+        current_state['messages'].append(HumanMessage(content=user_in))
+        # Reset iteration count checks if needed? No, keep history.
+        
+        log_memory(f"**[You]**: {user_in}")
 
 def main():
     print("=== PowerAgent V3.0 ===")
+    reset_memory() # Clear previous memory log
+    log_memory("# PowerAgent V3.0 Optimization Session")
     
     # 1. Find Circuit
     # Look for .asc file in current or parent folders
