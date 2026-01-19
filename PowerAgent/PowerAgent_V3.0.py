@@ -656,38 +656,12 @@ def run_engineer_phase(specs: OptimizationSpecs):
                 print(f"\n[Engineer]: {msg.content}")
                 log_memory(f"**[Engineer]**: {msg.content}")
                 
-                # Update current_state with the result of this step
-                # Note: langgraph stream returns the chunk, not full state accumulation automatically 
-                # unless we manage it. 
-                # Actually app.stream yields dictionaries of {node: output}. 
-                # We need to capture the final output state to resume.
-                # However, app.stream doesn't yield the full state object easily for re-entry 
-                # in a while loop if we break.
-                # BETTER APPROACH: Use app.invoke or keep updating 'current_state' via a persistent check object?
-                # LangGraph is stateful if using checkpointer, but here we are in-memory.
-                
-                # We can't easily "resume" a stream from the middle if we break out of it 
-                # unless we pass the modified state back in. 
-                # The 'event' contains the node output. We need to merge it.
-                
-                # Let's trust the graph to run until it hits END (which we defined as "No Tool").
-                # Then we take the last state from the graph execution? 
                 pass
             
             if 'tools' in event:
                 # Tool output
                 pass
         
-        # At this point, the Agent has finished a turn (didn't call tool).
-        # We need to get the LAST state to append our message. 
-        # Since we can't easily extract full state from stream iteration, 
-        # let's run .invoke() instead of stream for the "Step" logic?
-        # Or just rebuild state? 
-        
-        # Workaround for this script structure (Simple StateGraph):
-        # We can't easily capture the final state *after* the stream ends without checkpointer.
-        # So we will modify the graph to NOT loop automatically?
-        # Alternatively, we just use `app.invoke(current_state)` which runs until END.
         
         result = app.invoke(current_state)
         current_state = result 
