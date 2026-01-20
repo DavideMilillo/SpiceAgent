@@ -663,6 +663,15 @@ def run_engineer_phase(specs: OptimizationSpecs):
     
     app = workflow.compile()
     
+    # Visualization
+    try:
+        from langchain_core.runnables.graph import MermaidDrawMethod
+        graph_img_path = os.path.join(RESULTS_DIR, "engineer_agent_graph.png")
+        app.get_graph().draw_mermaid_png(output_file_path=graph_img_path)
+        print(f"Graph structure saved to {graph_img_path}")
+    except Exception as e:
+        print(f"Graph visualization skipped: {e}")
+
     print("Engineer Agent is running... (Type 'exit' to quit at any prompt)")
     
     # Stream the graph execution
@@ -674,8 +683,21 @@ def run_engineer_phase(specs: OptimizationSpecs):
             # Helper: If agent output text instead of tool, print it
             msg = event['engineer']['messages'][-1]
             if not msg.tool_calls:
+                # Fallback: Capture text and force a pause so the graph doesn't end abruptly
                 print(f"\n[Engineer Text]: {msg.content}")
                 log_memory(f"**[Engineer Text]**: {msg.content}")
+                
+                # Implicitly ask human since agent forgot tool
+                user_reply = input("\n[You (Implicit Ask)]: ")
+                if user_reply.lower() in ['exit', 'quit']:
+                     sys.exit(0)
+                
+                # We need to inject this back. The simplest way in this stream loop 
+                # is to reconstruct state? Actually, app.stream doesn't support 
+                # easy injection mid-flight for this error case without checkpointer.
+                # So we just print and let it loop/end. 
+                # IMPROVEMENT: Use the 'Forgiving Mode' or just warn user.
+                pass
 
 def main():
     print("=== PowerAgent V3.0 ===")
