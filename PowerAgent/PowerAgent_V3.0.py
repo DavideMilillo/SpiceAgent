@@ -387,7 +387,27 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str):
             err_msg = traceback.format_exc()
             return f"Error executing analysis script:\n{err_msg}"
 
-    return [update_circuit, simulate_circuit, evaluate_results]
+    @tool
+    def ask_human(question: str) -> str:
+        """
+        Asks the human user a question or requests feedback. 
+        Use this when you are stuck, want to confirm a step, report results, or ask if you should continue.
+        The execution effectively pauses until the human replies.
+        """
+        print(f"\n[Engineer Asking]: {question}")
+        log_memory(f"**[Engineer Asking]**: {question}")
+        
+        response = input("\n[You]: ")
+        
+        if response.lower() in ['exit', 'quit']:
+            log_memory(f"**[You]**: {response} (EXIT triggered)")
+            print("Exiting as requested...")
+            sys.exit(0)
+            
+        log_memory(f"**[You]**: {response}")
+        return response
+
+    return [update_circuit, simulate_circuit, evaluate_results, ask_human]
 
 # --- Engineer Node ---
 
@@ -568,9 +588,10 @@ def run_engineer_phase(specs: OptimizationSpecs):
         "1. Update Circuit: Adjust 'tunable_parameters' to move towards goal.\n"
         "2. Simulate: Run the simulation.\n"
         "3. Evaluate: Write PYTHON CODE to inspect the RAW file and extract metrics.\n"
-        "4. REPORT & PAUSE: If you are unsure, stuck, or if an adjustment didn't have the expected effect (e.g. Vout didn't change), "
-        "   STOP and ask the human for guidance. Do NOT loop aimlessly. \n"
-        "5. SUCCESS: If goals are met, Report success and ask for confirmation.\n\n"
+        "4. COMMUNICATE: Use the `ask_human` tool to report results, ask for guidance, or confirm completion.\n"
+        "   - NEVER just stop or output text without using a tool. If you want to talk to the human, use `ask_human`.\n"
+        "   - If you are stuck or Vout isn't changing, ASK THE HUMAN.\n"
+        "   - If you think you are done, ASK THE HUMAN to confirm.\n\n"
         "IMPORTANT on Python Scripting:\n"
         " - Always assign the final dict of values to variable `metrics`.\n"
         " - Available in scope: `raw_path`, `RawRead`, `np`.\n"
@@ -618,14 +639,7 @@ def run_engineer_phase(specs: OptimizationSpecs):
         if last_msg.tool_calls:
             return "tools"
             
-        # 2. If Agent asks question or stops, we break to Human Input
-        # Heuristic: If it doesn't call a tool, it's talking to us.
-        # We need a new pattern: Agent -> Human -> Agent
-        # But 'state' doesn't auto-read human input unless we add a node for it.
-        # For simplicity in this script: we return END to break the .stream() loop,
-        # then we prompt user in the main loop, then we re-invoke. 
-        # So essentially: No Tool = Wait for Human.
-        
+        # 2. If no tool called (Agent messed up and output text), end graph.
         return END
 
     workflow.add_conditional_edges("engineer", should_continue_engineer, {"tools": "tools", END: END})
@@ -634,52 +648,19 @@ def run_engineer_phase(specs: OptimizationSpecs):
     
     app = workflow.compile()
     
-    print("Engineer Agent is running... (Type 'exit' to quit)")
+    print("Engineer Agent is running... (Type 'exit' to quit at any prompt)")
     
-    # Main 'Human-in-the-loop' Engine
-    # We keep the state object outside the stream loop
-    current_state = initial_state
+    # Stream the graph execution
+    # Since 'ask_human' is now a tool, the graph will naturally pause inside the tool execution.
+    # We don't need the complex while loop anymore.
     
-    while True:
-        # Run until the Agent stops to talk (returns END)
-        for event in app.stream(current_state, config={"recursion_limit": 50}):
-            if 'engineer' in event:
-                msg = event['engineer']['messages'][-1]
-                print(f"\n[Engineer]: {msg.content}")
-                log_memory(f"**[Engineer]**: {msg.content}")
-                
-                pass
-            
-            if 'tools' in event:
-                # Tool output
-                pass
-        
-        
-        result = app.invoke(current_state)
-        current_state = result 
-        
-        last_msg = current_state['messages'][-1]
-        
-        # If the last message was a tool call, the graph shouldn't have stopped (per logic above).
-        # If it stopped, it means it returned END, so no tool call.
-        
-        # Check if user wants to exit
-        if "optimization complete" in last_msg.content.lower():
-             print("\nOptimization Finished.")
-             # We still let the user confirm or exit
-        
-        # Get Human Input
-        print("\n[Help the Agent]: ", end="")
-        user_in = input()
-        
-        if user_in.lower() in ["exit", "quit"]:
-            break
-            
-        # Append User message to state and loop
-        current_state['messages'].append(HumanMessage(content=user_in))
-        # Reset iteration count checks if needed? No, keep history.
-        
-        log_memory(f"**[You]**: {user_in}")
+    for event in app.stream(initial_state, config={"recursion_limit": 100}):
+        if 'engineer' in event:
+            # Helper: If agent output text instead of tool, print it
+            msg = event['engineer']['messages'][-1]
+            if not msg.tool_calls:
+                print(f"\n[Engineer Text]: {msg.content}")
+                log_memory(f"**[Engineer Text]**: {msg.content}")
 
 def main():
     print("=== PowerAgent V3.0 ===")
