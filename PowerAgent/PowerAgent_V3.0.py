@@ -146,7 +146,7 @@ def parameterize_netlist(netlist_path: str, tunable_components: List[str]) -> Li
         return tunable_components
 
 # =================================================================================================
-# STAGE 1: THE CONSULTANT (Requirement Gathering)
+# STAGE 1: THE CONSULTANT (Building the Specification)
 # =================================================================================================
 
 class OptimizationSpecs(TypedDict):
@@ -416,20 +416,9 @@ def engineer_node(state: EngineerState):
     
     messages = [SystemMessage(content=context)] + state['messages']
 
-    model = ChatOpenAI(model="gpt-4o", temperature=0.2)
-    # We need to recreate tools here or pass them. 
-    # Since tools depend on file paths managed in main(), we assume they are bound in the Graph definition
-    # For this function, we assume the node receives the bound tools implicitly?
-    # No, LangGraph nodes usually don't carry the tools unless defined globally or in state?
-    # We will bind tools inside the graph builder, this function just needs to call invoke.
-    # To do that, we need access to the tool functions. 
-    # A cleaner pattern: The graph is built with the tool node.
-    
-    # We can retrieve tools from a global or passed config? 
-    # For this script structure, we'll initialize tools in main and bind them here.
-    # But tools are closures over 'work_dir'. We need to be careful.
-    # Solution: We will attach the 'tools' to the state or use a configurable runnable. 
-    # FOR SIMPLICITY: We will reconstruct the tool list here using path from specs.
+    model = ChatOpenAI(model="gpt-4o", temperature=0.1)
+    # Recreate the engineer tools here using paths from specs, since they depend on
+    # circuit-specific file locations and are not passed through the node state.
     
     work_dir = os.path.dirname(specs['target_raw'])
     netlist_name = os.path.basename(specs['target_netlist'])
