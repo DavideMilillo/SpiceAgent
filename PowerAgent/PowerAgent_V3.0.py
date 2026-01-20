@@ -335,7 +335,22 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str):
                 else:
                     return "Simulation failed: Empty RAW file."
             else:
-                return "Simulation failed: No RAW file created (check LTSpice logs)."
+                # Check for .fail or .log file to give better error message
+                fail_log = os.path.join(work_dir, netlist_name.replace('.net', '.fail'))
+                log_file = os.path.join(work_dir, netlist_name.replace('.net', '.log'))
+                
+                error_detail = ""
+                if os.path.exists(fail_log):
+                    with open(fail_log, 'r', errors='ignore') as f:
+                        error_detail = f.read()
+                elif os.path.exists(log_file):
+                    with open(log_file, 'r', errors='ignore') as f:
+                        error_detail = f.read()
+                
+                if "Time step too small" in error_detail:
+                    return f"Simulation Crashed (Convergence Error): 'Time step too small'. \nAdvice: Try relaxing tolerances (add .param reltol=1e-3) or changing the solver."
+                
+                return f"Simulation failed. No RAW file created.\nLTSpice Log Output:\n{error_detail[-500:]}" # Return last 500 chars
         except Exception as e:
             return f"Error interacting with LTSpice: {e}"
 
