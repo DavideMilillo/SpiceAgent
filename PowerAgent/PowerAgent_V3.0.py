@@ -6,6 +6,9 @@ Architecture:
 1. Stage 1 (Consultant): interactive chat to define goals, analyze circuit, and build a spec.
 2. Stage 2 (Engineer): Autonomous loop that optimizes the circuit using Python code generation for metrics.
 
+Main focus:
+- Human in the loop agent, using human expertise to guide the optimization.
+
 Author: Davide Milillo
 """
 
