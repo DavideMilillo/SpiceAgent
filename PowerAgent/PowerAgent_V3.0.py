@@ -54,95 +54,77 @@ def reset_memory():
 def clean_filename(path: str) -> str:
     return os.path.basename(path)
 
-#TEMPORAL SOLUTION
-#I DON'T LIKE IT BUT IT WORKS FOR NOW
-#It is hard coded and designed for a specific case
-# it may not work if I change converter or other things
-# Here we need a smart agent that given the human-like specification 
-#translates to the actual netlist parameters based on the circuit analysis
 def parameterize_netlist(netlist_path: str, tunable_components: List[str]) -> List[str]:
     """
-    Modifies the netlist to use parameters for the specified components.
-    Returns the new list of tunable parameter names.
-    This implements 'Solution 3' (Pre-processing/Parameterization) to make the circuit 'Agent-Friendly'.
+    The 'Parametrizator': Uses the LLM to intelligently convert hardcoded components 
+    to parameterized ones in the netlist.
     """
+    import json
+    
+    print(f"  -> [Parametrizator] Invoking LLM to parameterize: {tunable_components}")
+    
     try:
-        net = SpiceEditor(netlist_path)
-        new_tunable = []
-        
-        # Read raw content to find .params and component definitions
+        # 1. Read Netlist
         with open(netlist_path, 'r', encoding='latin-1') as f:
             content = f.read()
-
-        updates_made = False
-
-        for comp in tunable_components:
-            # 1. Get current definition
-            try:
-                val = net.get_component_value(comp)
-            except:
-                # Fallback for complex lines using regex
-                val = ""
-                match = re.search(f"^{comp}\\s+.*$", content, re.MULTILINE)
-                if match:
-                    val = match.group(0)
-
-            # Case A: PULSE Source (Vsw)
-            if "PULSE" in val:
-                # Pattern: PULSE(v1 v2 td tr tf ton per)
-                clean_val = val.replace(',', ' ')
-                m = re.search(r"PULSE\((.*?)\)", clean_val)
-                if m:
-                    args = m.group(1).split()
-                    if len(args) >= 7:
-                        # ton is index 5
-                        ton = args[5]
-                        
-                        param_name = f"Ton_{comp}"
-                        
-                        # Create param
-                        net.set_parameter(param_name, ton)
-                        
-                        # Update component model to use {Ton_comp}
-                        args[5] = f"{{{param_name}}}"
-                        new_args = " ".join(args)
-                        new_model = f"PULSE({new_args})"
-                        
-                        net.set_element_model(comp, new_model)
-                        new_tunable.append(param_name)
-                        updates_made = True
-                        continue
-
-            # Case B: Already Parameterized (Cout with {C_nom}, etc)
-            if "{" in val and "}" in val:
-                vars_found = re.findall(r"\{(\w+)\}", val)
-                # Heuristic: If 'C_nom' is present (common pattern), use it
-                if 'C_nom' in vars_found:
-                     new_tunable.append('C_nom')
-                     continue
-                if len(vars_found) == 1:
-                    new_tunable.append(vars_found[0])
-                    continue
-
-            # Case C: Standard Value (Rload 6, Cin 300u)
-            # If value is simple number/string without spaces (and not a model like 'NMOS')
-            if re.match(r"^[0-9\-\+\.a-zA-Z]+$", val) and " " not in val:
-                 param_name = f"val_{comp}"
-                 net.set_parameter(param_name, val)
-                 net.set_component_value(comp, f"{{{param_name}}}")
-                 new_tunable.append(param_name)
-                 updates_made = True
-                 continue
             
-            # Fallback: keep original
-            new_tunable.append(comp)
+        # 2. Setup LLM
+        model = ChatOpenAI(model="gpt-4o", temperature=0)
+        
+        system_prompt = (
+            "You are the 'Netlist Architect', an expert in SPICE circuit syntax.\n"
+            "Your Task: specific components in the provided netlist must be made 'tunable'.\n"
+            "1. Receive the netlist and a list of Component Names.\n"
+            "2. For each component, find its definition line.\n"
+            "3. Extract its current value (e.g., '10k', '22u', 'PULSE(...)').\n"
+            "4. Create a new parameter name for it (e.g., 'val_R1').\n"
+            "   - If it's a PULSE source, we specifically want to tune the 'Ton' (On Time). Extract it and parameterize it as 'Ton_{Name}'.\n"
+            "   - If it's a standard passives (R, L, C) or source, parameterize the main value/magnitude.\n"
+            "5. REWRITE the netlist replacing that value with the parameter in curly braces: '{val_R1}'.\n"
+            "6. APPEND the .param definition at the end (e.g., '.param val_R1=10k').\n"
+            "7. Return JSON with the 'new_netlist' and the list of 'new_parameter_names'.\n"
+            "IMPORTANT: Preserve all other text (node names, parasitic properties like Rser, etc) exactly."
+        )
+        
+        user_prompt = (
+            f"Components to parameterize: {tunable_components}\n\n"
+            f"Netlist Content:\n```\n{content}\n```"
+        )
+        
+        response = model.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
+        ])
+        
+        # 3. Parse Response
+        txt = response.content.replace("```json", "").replace("```", "").strip()
+        try:
+            data = json.loads(txt)
+        except json.JSONDecodeError:
+            # Fallback if no JSON found
+            print("  -> [Parametrizator] JSON parse error. Raw response:\n" + txt[:200])
+            return tunable_components
+        
+        new_netlist = data.get("new_netlist")
+        if not new_netlist:
+             # Try key "netlist" just in case
+             new_netlist = data.get("netlist")
+        
+        if not new_netlist:
+             print("  -> [Parametrizator] Error: LLM returned empty netlist.")
+             return tunable_components
 
-        if updates_made:
-            net.write_netlist(netlist_path)
+        new_params = data.get("new_parameter_names", [])
+        
+        # 4. Write back
+        with open(netlist_path, 'w', encoding='latin-1') as f:
+            f.write(new_netlist)
             
-        return new_tunable
+        print(f"  -> [Parametrizator] Success. New params: {new_params}")
+        return new_params
+
     except Exception as e:
-        print(f"Warning: Auto-parameterization failed: {e}")
+        print(f"  -> [Parametrizator] Error: {e}. Keeping original list.")
         return tunable_components
 
 # =================================================================================================
