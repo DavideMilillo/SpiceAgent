@@ -404,7 +404,23 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str):
         log_memory(f"**[You]**: {response}")
         return response
 
-    return [update_circuit, simulate_circuit, evaluate_results, ask_human]
+    @tool
+    def read_netlist() -> str:
+        """
+        Reads the current content of the netlist file.
+        Use this to debug simulation failures, verify parameter updates were applied correctly,
+        or understand the circuit topology (connections) if needed.
+        """
+        try:
+            with open(netlist_path, 'r', encoding='latin-1') as f:
+                content = f.read()
+            # Log briefly that we read it
+            log_memory(f"**[Engineer Tool Read]**: Read netlist content ({len(content)} chars).")
+            return content
+        except Exception as e:
+            return f"Error reading netlist: {e}"
+
+    return [update_circuit, simulate_circuit, evaluate_results, ask_human, read_netlist]
 
 # --- Engineer Node ---
 
