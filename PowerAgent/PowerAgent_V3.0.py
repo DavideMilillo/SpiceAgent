@@ -62,6 +62,7 @@ def parameterize_netlist(netlist_path: str, tunable_components: List[str]) -> Li
     import json
     
     print(f"  -> [Parametrizator] Invoking LLM to parameterize: {tunable_components}")
+    log_memory(f"**[Parametrizator]**: Invoking LLM to parameterize: {tunable_components}")
     
     try:
         # 1. Read Netlist
@@ -121,10 +122,12 @@ def parameterize_netlist(netlist_path: str, tunable_components: List[str]) -> Li
             f.write(new_netlist)
             
         print(f"  -> [Parametrizator] Success. New params: {new_params}")
+        log_memory(f"**[Parametrizator]**: Success. New params: {new_params}")
         return new_params
 
     except Exception as e:
         print(f"  -> [Parametrizator] Error: {e}. Keeping original list.")
+        log_memory(f"**[Parametrizator]**: Error: {e}")
         return tunable_components
 
 # =================================================================================================
@@ -358,6 +361,9 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str):
         """
         
         try:
+            # Log the script to memory so the user can see exactly what logic was used
+            log_memory(f"**[Engineer Tool Analysis Script]**:\n```python\n{python_script}\n```")
+
             # Context for execution
             local_scope = {
                 'raw_path': raw_path,
