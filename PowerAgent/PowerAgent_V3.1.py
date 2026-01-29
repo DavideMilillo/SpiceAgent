@@ -53,44 +53,49 @@ def reset_memory():
 def clean_filename(path: str) -> str:
     return os.path.basename(path)
 
-def focus_ltspice_window():
-    """Attempts to bring the LTSpice window to the foreground to trigger a file reload."""
-    if os.name == 'nt':
+def reload_ltspice_live(circuit_path: str):
+    """
+    Uses pywinauto to force LTSpice to close the current schematic (discarding RAM changes)
+    and reload it from disk (reading Agent changes).
+    """
+    import time
+    try:
+        from pywinauto import Application
+        
+        # 1. Connect to LTSpice
         try:
-            import ctypes
-            user32 = ctypes.windll.user32
-            
-            WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
-            found_hwnd = []
-            
-            def enum_proc(hwnd, lParam):
-                length = user32.GetWindowTextLengthW(hwnd)
-                if length > 0:
-                    buff = ctypes.create_unicode_buffer(length + 1)
-                    user32.GetWindowTextW(hwnd, buff, length + 1)
-                    title = buff.value
-                    # Match standard LTSpice window titles
-                    if "LTspice" in title:
-                        found_hwnd.append(hwnd)
-                        # Prefer the one with a circuit open (usually has path or filename)
-                        if ".asc" in title or " - " in title:
-                            return False # Stop searching, found a specific one
-                return True
+            # Connect to existing instance
+            app = Application(backend="win32").connect(title_re=".*LTspice.*")
+        except Exception:
+            return False
 
-            user32.EnumWindows(WNDENUMPROC(enum_proc), 0)
+        # 2. Focus Main Window
+        window = app.top_window()
+        window.set_focus()
+        
+        # 3. Close Active Document (Ctrl+F4)
+        window.type_keys("^{F4}")
+        time.sleep(0.5)
+        
+        # 4. Handle 'Save Changes?' Popup
+        try:
+            # Check for standard dialog class #32770
+            popup = app.window(title_re=".*LTspice.*", class_name="#32770") 
+            if popup.exists():
+                popup.type_keys("n") # Press 'n' for No
+                time.sleep(0.2)
+        except Exception:
+            pass
             
-            if found_hwnd:
-                hwnd = found_hwnd[-1] # Use the last one found (most likely the specific one if stopped early)
-                # Restore if minimized
-                if user32.IsIconic(hwnd):
-                    user32.ShowWindow(hwnd, 9) # SW_RESTORE
-                
-                # Bring to front
-                user32.SetForegroundWindow(hwnd)
-                return True
-        except Exception as e:
-            print(f"  [Warning] Could not focus LTSpice window: {e}")
-    return False
+        # 5. Re-open the file
+        if os.path.exists(circuit_path):
+            os.startfile(circuit_path)
+            
+        return True
+
+    except Exception as e:
+        print(f"  [Live] Error during refresh: {e}")
+        return False
 
 def modify_asc_file(asc_path: str, changes: Dict[str, str]):
     """
@@ -364,11 +369,11 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str, asc_p
                     modify_asc_file(asc_path, changes)
                     log.append(f"[Live] Updated schema file: {asc_path}")
                     
-                    # Force focus to trigger reload
-                    if focus_ltspice_window():
-                         log.append(f"[Live] Focused LTSpice window to trigger refresh.")
+                    # Force Reload (Close RAM -> Read from Disk)
+                    if reload_ltspice_live(asc_path):
+                         log.append(f"[Live] Forced LTSpice to reload file.")
                     else:
-                         log.append(f"[Live] Info: Click on LTSpice window to see updates.")
+                         log.append(f"[Live] Info: Click on LTSpice window to see updates (Auto-reload failed).")
                          
                 except Exception as e:
                     log.append(f"[Live] Failed to update .asc: {e}")
