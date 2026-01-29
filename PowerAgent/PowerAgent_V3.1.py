@@ -55,39 +55,90 @@ def clean_filename(path: str) -> str:
 
 def reload_ltspice_live(circuit_path: str):
     """
-    Uses pywinauto to force LTSpice to close the current schematic (discarding RAM changes)
-    and reload it from disk (reading Agent changes).
+    Uses ctypes (Dependency-Free) to send Ctrl+F4 to LTSpice and reload.
+    This avoids 'win32api' DLL errors common in Conda envs.
     """
     import time
-    try:
-        from pywinauto import Application
+    import ctypes
+    from ctypes import wintypes
+    
+    # Constants
+    VK_CONTROL = 0x11
+    VK_F4 = 0x73
+    KEYEVENTF_KEYUP = 0x0002
+    INPUT_KEYBOARD = 1
+    
+    # Structures for SendInput
+    class KEYBDINPUT(ctypes.Structure):
+        _fields_ = [("wVk", wintypes.WORD),
+                    ("wScan", wintypes.WORD),
+                    ("dwFlags", wintypes.DWORD),
+                    ("time", wintypes.DWORD),
+                    ("dwExtraInfo", ctypes.c_ulong)]
+    
+    class INPUT(ctypes.Structure):
+        _fields_ = [("type", wintypes.DWORD),
+                    ("ki", KEYBDINPUT)]
+    
+    def send_ctrl_f4():
+        user32 = ctypes.windll.user32
+        inputs = []
         
-        # 1. Connect to LTSpice
-        try:
-            # Connect to existing instance
-            app = Application(backend="win32").connect(title_re=".*LTspice.*")
-        except Exception:
+        # Ctrl Down
+        inputs.append(INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=VK_CONTROL, dwFlags=0)))
+        # F4 Down
+        inputs.append(INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=VK_F4, dwFlags=0)))
+        # F4 Up
+        inputs.append(INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=VK_F4, dwFlags=KEYEVENTF_KEYUP)))
+        # Ctrl Up
+        inputs.append(INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=VK_CONTROL, dwFlags=KEYEVENTF_KEYUP)))
+        
+        pInputs = (INPUT * len(inputs))(*inputs)
+        user32.SendInput(len(inputs), pInputs, ctypes.sizeof(INPUT))
+
+    try:
+        user32 = ctypes.windll.user32
+        
+        # 1. Find LTSpice Window
+        found_hwnd = []
+        def enum_proc(hwnd, lParam):
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length > 0:
+                buff = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(hwnd, buff, length + 1)
+                title = buff.value
+                if "LTspice" in title:
+                    found_hwnd.append(hwnd)
+            return True
+        
+        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+        user32.EnumWindows(WNDENUMPROC(enum_proc), 0)
+        
+        if not found_hwnd:
             return False
 
-        # 2. Focus Main Window
-        window = app.top_window()
-        window.set_focus()
+        hwnd = found_hwnd[-1] # Take the last one found
         
-        # 3. Close Active Document (Ctrl+F4)
-        window.type_keys("^{F4}")
+        # 2. Bring to Foreground
+        if user32.IsIconic(hwnd):
+            user32.ShowWindow(hwnd, 9) # SW_RESTORE
+        user32.SetForegroundWindow(hwnd)
+        time.sleep(0.5) # Wait for focus
+        
+        # 3. Send Close Command (Ctrl+F4 to close active doc)
+        send_ctrl_f4()
         time.sleep(0.5)
         
-        # 4. Handle 'Save Changes?' Popup
-        try:
-            # Check for standard dialog class #32770
-            popup = app.window(title_re=".*LTspice.*", class_name="#32770") 
-            if popup.exists():
-                popup.type_keys("n") # Press 'n' for No
-                time.sleep(0.2)
-        except Exception:
-            pass
-            
-        # 5. Re-open the file
+        # 4. Handle Save Popup (Blindly press 'n' just in case)
+        # We simulate pressing 'n'
+        inputs_n = [
+            INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=ord('N'), dwFlags=0)),
+            INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=ord('N'), dwFlags=KEYEVENTF_KEYUP))
+        ]
+        user32.SendInput(2, (INPUT * 2)(*inputs_n), ctypes.sizeof(INPUT))
+        time.sleep(0.2)
+
+        # 5. Re-open file
         if os.path.exists(circuit_path):
             os.startfile(circuit_path)
             
@@ -413,6 +464,15 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str, asc_p
     @tool
     def evaluate_results(python_script: str) -> str:
         """Executes a Python script to extract metrics from the simulation 'raw' file."""
+        # 1. Safety Check for common Agent hallucinations
+        if "import ltspice" in python_script:
+            return (
+                "Error: The 'ltspice' module is NOT available. "
+                "Do NOT try to import it. "
+                "Use the 'RawRead' class which is ALREADY available in your scope. "
+                "Example: `LTR = RawRead(raw_path)`."
+            )
+
         try:
             log_memory(f"**[Engineer Tool Analysis Script]**:\n```python\n{python_script}\n```")
             local_scope = {'raw_path': raw_path, 'RawRead': RawRead, 'np': np, 'metrics': {}}
