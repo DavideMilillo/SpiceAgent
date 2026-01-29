@@ -393,6 +393,17 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str, asc_p
                      Examples: {'R1': '10k', 'Cout': '22u', 'duty_cycle': '0.5'}
         """
         try:
+            # Robustness: Check if .net exists, if not and we have .asc, regenerate it
+            if not os.path.exists(netlist_path):
+                if asc_path and os.path.exists(asc_path):
+                     # Try to repair missing netlist from Live source
+                     try:
+                         tmp_editor = SpiceEditor(asc_path)
+                         tmp_editor.write_netlist(netlist_path)
+                     except: 
+                         pass # Fall through to error
+            
+            # Now try to load
             netlist = SpiceEditor(netlist_path)
             log = []
             
@@ -681,6 +692,9 @@ def run_engineer_phase(specs: OptimizationSpecs):
         "   - If you are stuck or Vout isn't changing, ASK THE HUMAN.\n"
         "   - If you think you are done, ASK THE HUMAN to confirm.\n\n"
         "IMPORTANT on Python Scripting:\n"
+        " - WARNING: The `ltspice` library is NOT installed. DO NOT try to import it.\n"
+        " - WARNING: DO NOT ask the user to install libraries. You must use the embedded tool.\n"
+        " - ALWAYS use `PyLTSpice.RawRead` which is pre-loaded in the global scope as `RawRead`.\n"
         " - Always assign the final dict of values to variable `metrics`.\n"
         " - Available in scope: `raw_path`, `RawRead`, `np`.\n"
         " - PyLTSpice Usage CHEATSHEET (Use this structure):\n"
@@ -692,6 +706,7 @@ def run_engineer_phase(specs: OptimizationSpecs):
         "   # 2. Extract Time and Voltage vectors (step 0 for transients)\n"
         "   steps = LTR.get_steps()\n"
         "   t = LTR.get_trace('time').get_wave(steps[0])\n"
+        "   # Note: use case-sensitive trace name from LTR.get_trace_names() if unsure\n"
         "   v_node = LTR.get_trace('V(out)').get_wave(steps[0])\n"
         "   \n"
         "   # 3. Process Data (e.g. steady state last 30%)\n"
