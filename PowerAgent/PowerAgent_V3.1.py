@@ -53,6 +53,45 @@ def reset_memory():
 def clean_filename(path: str) -> str:
     return os.path.basename(path)
 
+def focus_ltspice_window():
+    """Attempts to bring the LTSpice window to the foreground to trigger a file reload."""
+    if os.name == 'nt':
+        try:
+            import ctypes
+            user32 = ctypes.windll.user32
+            
+            WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+            found_hwnd = []
+            
+            def enum_proc(hwnd, lParam):
+                length = user32.GetWindowTextLengthW(hwnd)
+                if length > 0:
+                    buff = ctypes.create_unicode_buffer(length + 1)
+                    user32.GetWindowTextW(hwnd, buff, length + 1)
+                    title = buff.value
+                    # Match standard LTSpice window titles
+                    if "LTspice" in title:
+                        found_hwnd.append(hwnd)
+                        # Prefer the one with a circuit open (usually has path or filename)
+                        if ".asc" in title or " - " in title:
+                            return False # Stop searching, found a specific one
+                return True
+
+            user32.EnumWindows(WNDENUMPROC(enum_proc), 0)
+            
+            if found_hwnd:
+                hwnd = found_hwnd[-1] # Use the last one found (most likely the specific one if stopped early)
+                # Restore if minimized
+                if user32.IsIconic(hwnd):
+                    user32.ShowWindow(hwnd, 9) # SW_RESTORE
+                
+                # Bring to front
+                user32.SetForegroundWindow(hwnd)
+                return True
+        except Exception as e:
+            print(f"  [Warning] Could not focus LTSpice window: {e}")
+    return False
+
 def modify_asc_file(asc_path: str, changes: Dict[str, str]):
     """
     Directly modifies the .asc file text to update component values and parameters.
@@ -324,6 +363,13 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str, asc_p
                 try:
                     modify_asc_file(asc_path, changes)
                     log.append(f"[Live] Updated schema file: {asc_path}")
+                    
+                    # Force focus to trigger reload
+                    if focus_ltspice_window():
+                         log.append(f"[Live] Focused LTSpice window to trigger refresh.")
+                    else:
+                         log.append(f"[Live] Info: Click on LTSpice window to see updates.")
+                         
                 except Exception as e:
                     log.append(f"[Live] Failed to update .asc: {e}")
 
