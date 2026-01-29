@@ -170,6 +170,7 @@ def analyze_circuit_structure(file_path: str) -> str:
         # Manual parse for .param and to gather more info
         params = []
         with open(file_path, 'r', encoding='latin-1') as f:
+            content_netlist= f.read()  #the pure netlist
             for line in f:
                 line = line.strip()
                 if line.lower().startswith('.param'):
@@ -177,11 +178,13 @@ def analyze_circuit_structure(file_path: str) -> str:
                     parts = line.split()
                     if len(parts) > 1:
                         params.append(line)
+
         
         return (f"Analysis of {os.path.basename(file_path)}:\n"
                 f"--- Parameters (.param) ---\n" + "\n".join(params) + "\n\n"
                 f"--- Components ---\n" + ", ".join(components[:20]) + 
                 (f"... (+{len(components)-20} more)" if len(components)>20 else "") + "\n"
+                f"Whole netlist: {content_netlist}"
                 "\nUsage: specific components can be updated directly, or parameters can be tuned.")
     except Exception as e:
         return f"Error parsing circuit: {str(e)}"
@@ -201,7 +204,7 @@ def consultant_node(state: ConsultantState):
         "   - Which parameters/components are 'tunable' (the knobs).\n"
         "   - What are the precise goals (Vout target, efficiency, etc.).\n"
         "   - Which nodes/traces correspond to these goals (e.g. 'Is V(n001) the output?').\n"
-        "3. Once you have ALL info, output the FINAL CONFIRMATION in this format:\n"
+        "3. Once you have ALL info, output ONLY the FINAL CONFIRMATION in this EXACT format:\n"
         "   'READY_TO_OPTIMIZE: {JSON_representation_of_OptimizationSpecs}'\n"
         "   Make sure tunable_parameters are exact names found in the file.\n"
         "   IMPORTANT: If the user asks to tune a property of a complex component (e.g. 'Duty Cycle', 'Ton', or 'Period' of Vsw), "
