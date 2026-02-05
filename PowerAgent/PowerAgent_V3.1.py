@@ -610,7 +610,7 @@ def run_engineer_phase(specs: OptimizationSpecs):
     # --- USER CHOICE: MODE SELECTION ---
     print("\n[Configuration] Select Operation Mode:")
     print("1. Safe Mode (Recommended): Works in a separate copy. No changes to your .asc file.")
-    print("2. Live Mode (Experimental): Works DIRECTLY on your .asc file. You see values change in LTSpice.")
+    print("2. Live Mode (Experimental, Windows Only): Works DIRECTLY on your .asc file. You see values change in LTSpice.")
     
     mode = input("Select option (1/2): ").strip()
     is_live = mode == '2'
