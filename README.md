@@ -61,6 +61,26 @@ print("Optimization Complete!")
 print("Final Values:", result.get("circuit_values"))
 ```
 
+## Interactive Mode (New in V3) ✅
+
+For complex designs or when you need a "Human-in-the-Loop" approach, use the new `PowerAgentV3`.
+
+**Features:**
+*   **Consultant Phase**: Chat with the agent to define goals and identify tunable parameters.
+*   **Live Mode (Windows Only)**: Updates your `.asc` schematic in real-time as the agent optimizes.
+*   **Safe Mode**: Works on a copy of your files (default).
+
+```python
+from spiceagent import PowerAgentV3
+
+# 1. Initialize
+agent = PowerAgentV3()
+
+# 2. Run Interactive Optimization
+# This launches a CLI chat session.
+agent.optimize(circuit_path="path/to/my_circuit.asc")
+```
+
 ## Project Structure
 
 ### 📦 SpiceAgent Package (New Standard)
