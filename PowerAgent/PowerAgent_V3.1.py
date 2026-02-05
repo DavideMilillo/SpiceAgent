@@ -123,6 +123,9 @@ def reload_ltspice_live(circuit_path: str):
         if os.path.exists(circuit_path):
             os.startfile(circuit_path)
             
+        # Add a delay to let LTSpice GUI fully load and release locks
+        time.sleep(2.0)
+            
         return True
 
     except Exception as e:
@@ -723,7 +726,15 @@ def run_engineer_phase(specs: OptimizationSpecs):
             msg = event['engineer']['messages'][-1]
             if not msg.tool_calls:
                 print(f"\n[Engineer Text]: {msg.content}")
+                
+                # Log this text message to memory so it's not lost
+                log_memory(f"**[Engineer Text]**: {msg.content}")
+                
                 user_reply = input("\n[You (Implicit Ask)]: ")
+                
+                # Log the user's implicit reply as well
+                log_memory(f"**[You (Implicit Ask)]**: {user_reply}")
+                
                 if user_reply.lower() in ['exit', 'quit']: sys.exit(0)
 
 def main():
