@@ -413,14 +413,8 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str, asc_p
             if asc_path and os.path.exists(asc_path):
                 try:
                     modify_asc_file(asc_path, changes)
-                    log.append(f"[Live] Updated schema file: {asc_path}")
-                    
-                    # Force Reload (Close RAM -> Read from Disk)
-                    if reload_ltspice_live(asc_path):
-                         log.append(f"[Live] Forced LTSpice to reload file.")
-                    else:
-                         log.append(f"[Live] Info: Click on LTSpice window to see updates (Auto-reload failed).")
-                         
+                    log.append(f"[Live] Updated schema file: {asc_path}") 
+                    log.append(f"[Live] Visual update deferred to simulation completion.")                    
                 except Exception as e:
                     log.append(f"[Live] Failed to update .asc: {e}")
 
@@ -441,6 +435,12 @@ def create_engineer_tools(work_dir: str, netlist_name: str, raw_name: str, asc_p
             
             if os.path.exists(raw_path) and os.path.getsize(raw_path) > 0:
                 msg = f"Simulation success. Output: {os.path.basename(raw_path)}"
+                
+                # [Live Mode] Only reload GUI here to avoid file locks during Sim
+                if asc_path and os.path.exists(asc_path):
+                     reload_ltspice_live(asc_path)
+                     msg += " (GUI Reloaded)"
+
                 log_memory(f"**[Engineer Tool Sim]**: {msg}")
                 return msg
             else:
