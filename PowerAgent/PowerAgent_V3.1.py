@@ -124,7 +124,7 @@ def reload_ltspice_live(circuit_path: str):
             os.startfile(circuit_path)
             
         # Add a delay to let LTSpice GUI fully load and release locks
-        time.sleep(2.0)
+        time.sleep(5.0)
             
         return True
 
