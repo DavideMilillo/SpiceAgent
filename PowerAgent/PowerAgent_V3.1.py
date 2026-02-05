@@ -55,20 +55,20 @@ def clean_filename(path: str) -> str:
 
 def reload_ltspice_live(circuit_path: str):
     """
-    Uses ctypes (Dependency-Free) to send Ctrl+F4 to LTSpice and reload.
-    This avoids 'win32api' DLL errors common in Conda envs.
+    Uses ctypes to CLOSE the LTSpice application fully and reload it.
+    This prevents 'multiple windows' accumulation by ensuring we close the old instance
+    before starting the new one.
     """
     import time
     import ctypes
     from ctypes import wintypes
     
     # Constants
-    VK_CONTROL = 0x11
-    VK_F4 = 0x73
+    WM_CLOSE = 0x0010
+    VK_N = 0x4E
     KEYEVENTF_KEYUP = 0x0002
     INPUT_KEYBOARD = 1
     
-    # Structures for SendInput
     class KEYBDINPUT(ctypes.Structure):
         _fields_ = [("wVk", wintypes.WORD),
                     ("wScan", wintypes.WORD),
@@ -79,22 +79,6 @@ def reload_ltspice_live(circuit_path: str):
     class INPUT(ctypes.Structure):
         _fields_ = [("type", wintypes.DWORD),
                     ("ki", KEYBDINPUT)]
-    
-    def send_ctrl_f4():
-        user32 = ctypes.windll.user32
-        inputs = []
-        
-        # Ctrl Down
-        inputs.append(INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=VK_CONTROL, dwFlags=0)))
-        # F4 Down
-        inputs.append(INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=VK_F4, dwFlags=0)))
-        # F4 Up
-        inputs.append(INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=VK_F4, dwFlags=KEYEVENTF_KEYUP)))
-        # Ctrl Up
-        inputs.append(INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=VK_CONTROL, dwFlags=KEYEVENTF_KEYUP)))
-        
-        pInputs = (INPUT * len(inputs))(*inputs)
-        user32.SendInput(len(inputs), pInputs, ctypes.sizeof(INPUT))
 
     try:
         user32 = ctypes.windll.user32
@@ -114,31 +98,28 @@ def reload_ltspice_live(circuit_path: str):
         WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
         user32.EnumWindows(WNDENUMPROC(enum_proc), 0)
         
-        if not found_hwnd:
-            return False
+        # 2. Close ALL found LTSpice instances to be sure
+        for hwnd in found_hwnd:
+             # Send Close Message
+             user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
+             
+             # Bring to front just in case a dialog pops up
+             if user32.IsIconic(hwnd):
+                user32.ShowWindow(hwnd, 9)
+             user32.SetForegroundWindow(hwnd)
+             
+             # Spam 'n' for "Do you want to save?"
+             time.sleep(0.2)
+             inputs_n = [
+                INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=ord('N'), dwFlags=0)),
+                INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=ord('N'), dwFlags=KEYEVENTF_KEYUP))
+             ]
+             user32.SendInput(2, (INPUT * 2)(*inputs_n), ctypes.sizeof(INPUT))
+             
+        # Wait for them to die
+        time.sleep(1.0)
 
-        hwnd = found_hwnd[-1] # Take the last one found
-        
-        # 2. Bring to Foreground
-        if user32.IsIconic(hwnd):
-            user32.ShowWindow(hwnd, 9) # SW_RESTORE
-        user32.SetForegroundWindow(hwnd)
-        time.sleep(0.5) # Wait for focus
-        
-        # 3. Send Close Command (Ctrl+F4 to close active doc)
-        send_ctrl_f4()
-        time.sleep(0.5)
-        
-        # 4. Handle Save Popup (Blindly press 'n' just in case)
-        # We simulate pressing 'n'
-        inputs_n = [
-            INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=ord('N'), dwFlags=0)),
-            INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=ord('N'), dwFlags=KEYEVENTF_KEYUP))
-        ]
-        user32.SendInput(2, (INPUT * 2)(*inputs_n), ctypes.sizeof(INPUT))
-        time.sleep(0.2)
-
-        # 5. Re-open file
+        # 3. Re-open file
         if os.path.exists(circuit_path):
             os.startfile(circuit_path)
             
