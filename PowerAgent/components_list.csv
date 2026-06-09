@@ -1,0 +1,15 @@
+Component_Type,Value,ESR,Package,Notes
+C,100u,0.05,1206,Standard cap
+C,120u,0.04,1206,Standard cap
+C,150u,0.03,1210,Target cap
+C,180u,0.03,1210,Standard cap
+C,220u,0.02,1210,Standard cap
+C,330u,0.02,1210,Standard cap
+L,10u,0.02,SMD,Power Inductor
+L,14u,0.02,SMD,Target Inductor
+L,15u,0.02,SMD,Standard Inductor
+L,22u,0.03,SMD,Standard Inductor
+R,5.6,0.0,0805,Standard Resistor
+R,6.0,0.0,0805,Target Resistor
+R,6.8,0.0,0805,Standard Resistor
+R,10,0.0,0805,Standard Resistor
