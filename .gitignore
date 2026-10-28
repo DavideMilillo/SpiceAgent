@@ -15,3 +15,6 @@ venv/
 *.plt
 *.sem
 *.tmp
+
+# Benchmark results
+benchmarks/results/

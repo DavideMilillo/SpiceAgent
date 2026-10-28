@@ -1,0 +1,280 @@
+"""
+Task 2.1: Non-Linear Buck Converter Optimization Benchmark
+==========================================================
+Executes an autonomous closed-loop optimization run using SpiceAgent
+to resolve Reviewer 3's criticism: ensuring the agent achieves
+V_mean = 5.0V +/- 0.1V AND V_ripple < 0.05V (< 1%).
+"""
+
+import os
+import sys
+import shutil
+import time
+import json
+import traceback
+import numpy as np
+import matplotlib.pyplot as plt
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+repo_root = os.path.abspath(os.path.join(script_dir, ".."))
+sys.path.insert(0, os.path.join(repo_root, "src"))
+sys.path.insert(0, script_dir)
+
+from runner_utils import BenchmarkTracker
+from PyLTSpice import SimRunner, SpiceEditor, RawRead
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage, ToolMessage
+from langchain_core.tools import tool
+
+def run_buck_optimization(max_iterations: int = 15):
+    results_dir = os.path.join(script_dir, "results", "buck_converter")
+    os.makedirs(results_dir, exist_ok=True)
+    tracker = BenchmarkTracker("Buck_Converter_Optimization", results_dir)
+    
+    work_dir = os.path.join(results_dir, "sim_workspace")
+    os.makedirs(work_dir, exist_ok=True)
+    
+    circuit_src = os.path.join(repo_root, "Circuits", "Buck_converter", "Buck_converter_real.asc")
+    target_asc = os.path.join(work_dir, "Buck_converter_real.asc")
+    target_net = os.path.join(work_dir, "Buck_converter_real.net")
+    target_raw = os.path.join(work_dir, "Buck_converter_real.raw")
+    shutil.copy(circuit_src, target_asc)
+    
+    # Initialize initial state: D = 50% (Ton = 5.0u), C_nom = 30u
+    editor = SpiceEditor(target_asc)
+    editor.set_component_value("Vsw", "PULSE(0 10 0 1n 1n 5u 10u)")
+    editor.set_parameter("C_nom", "30u")
+    editor.set_parameter("L_nom", "14u")
+    editor.write_netlist(target_net)
+    
+    current_params = {"Ton": "5u", "C_nom": "30u", "L_nom": "14u"}
+    
+    # Baseline simulation
+    runner = SimRunner(output_folder=work_dir)
+    runner.run(editor, run_filename="Buck_converter_real.net")
+    runner.wait_completion()
+    tracker.total_simulations += 1
+    
+    # Evaluate baseline
+    raw = RawRead(target_raw)
+    steps = raw.get_steps()
+    t_init = raw.get_trace("time").get_wave(steps[0])
+    v_init = raw.get_trace("V(out)").get_wave(steps[0])
+    idx = int(len(t_init) * 0.7)
+    v_ss_init = v_init[idx:]
+    init_metrics = {
+        "V_mean": float(np.mean(v_ss_init)),
+        "V_ripple_pp": float(np.ptp(v_ss_init)),
+        "V_ripple_percent": float((np.ptp(v_ss_init) / np.mean(v_ss_init)) * 100)
+    }
+    tracker.log_step(0, current_params, init_metrics, "Initial unoptimized configuration")
+    
+    # Define tools for LLM
+    @tool
+    def update_circuit(changes: dict) -> str:
+        """
+        Updates components or parameters in the netlist.
+        Args:
+            changes: Dict of component/param names and their new values.
+                     Example: {'Ton': '3.4u', 'C_nom': '150u'} or {'Vsw': 'PULSE(0 10 0 1n 1n 3.4u 10u)'}
+        """
+        try:
+            editor_cur = SpiceEditor(target_net)
+            log = []
+            for k, v in changes.items():
+                if k == "Ton":
+                    v_clean = str(v).strip()
+                    editor_cur.set_component_value("Vsw", f"PULSE(0 10 0 1n 1n {v_clean} 10u)")
+                    current_params["Ton"] = v_clean
+                    log.append(f"Set Vsw pulse width Ton = {v_clean}")
+                elif k in ["C_nom", "L_nom", "C_min", "I_sat", "V_coeff"]:
+                    editor_cur.set_parameter(k, str(v))
+                    current_params[k] = str(v)
+                    log.append(f"Set .param {k} = {v}")
+                else:
+                    try:
+                        editor_cur.set_parameter(k, str(v))
+                        log.append(f"Set .param {k} = {v}")
+                    except:
+                        editor_cur.set_component_value(k, str(v))
+                        log.append(f"Set component {k} = {v}")
+                    current_params[k] = str(v)
+            editor_cur.write_netlist(target_net)
+            return "Updated netlist successfully:\n" + "\n".join(log)
+        except Exception as e:
+            return f"Error updating circuit: {e}"
+
+    @tool
+    def simulate_circuit() -> str:
+        """Runs the LTSpice transient simulation with the current netlist."""
+        try:
+            r = SimRunner(output_folder=work_dir)
+            e = SpiceEditor(target_net)
+            r.run(e, run_filename="Buck_converter_real.net")
+            r.wait_completion()
+            tracker.total_simulations += 1
+            if os.path.exists(target_raw) and os.path.getsize(target_raw) > 0:
+                return "Simulation completed successfully. RAW waveform updated."
+            else:
+                return "Simulation ran but RAW file was empty or failed."
+        except Exception as e:
+            return f"Error during simulation: {e}"
+
+    @tool
+    def evaluate_results(python_script: str) -> str:
+        """
+        Executes a Python snippet to extract steady-state metrics from target_raw.
+        DO NOT import ltspice or RawRead. 'RawRead', 'np', and 'raw_path' are already provided!
+        You must write results into the 'metrics' dict: metrics['V_mean'] and metrics['V_ripple_pp'].
+        """
+        try:
+            local_scope = {"raw_path": target_raw, "RawRead": RawRead, "np": np, "metrics": {}}
+            exec(python_script, globals(), local_scope)
+            m = local_scope.get("metrics", {})
+            if m:
+                return f"Calculated Metrics: {m}"
+            return "Script ran but 'metrics' dictionary was empty."
+        except Exception as e:
+            return f"Error executing evaluation script:\n{traceback.format_exc()}"
+
+    tools = [update_circuit, simulate_circuit, evaluate_results]
+    model = ChatOpenAI(model="gpt-4o", temperature=0.1)
+    model = model.bind_tools(tools)
+    
+    # System Prompt
+    system_prompt = (
+        "You are an expert power electronics optimization agent.\n"
+        "Your goal is to tune the Non-Linear Buck Converter to satisfy BOTH design specifications:\n"
+        "1. Mean Output Voltage: V_mean = 5.0 V (+/- 0.1 V), i.e., [4.90 V, 5.10 V].\n"
+        "2. Peak-to-Peak Voltage Ripple: V_ripple_pp < 0.05 V (which is < 1.0% ripple).\n\n"
+        "Tunable parameters:\n"
+        "- 'Ton': Pulse on-time (e.g. '3.4u'). Initial is 5.0u (D=0.5). Increasing Ton increases V_mean.\n"
+        "- 'C_nom': Nominal output capacitance (e.g. '100u', '150u', '200u'). Initial is 30u. Increasing C_nom decreases V_ripple_pp.\n"
+        "- 'L_nom': Inductor nominal value (default '14u', can be tuned if needed).\n\n"
+        "Optimization Loop:\n"
+        "Step 1: Use `update_circuit` to adjust parameters based on measured error.\n"
+        "Step 2: Use `simulate_circuit` to run LTSpice.\n"
+        "Step 3: Use `evaluate_results` with Python code to compute metrics.\n"
+        "  Example evaluation code:\n"
+        "  ```python\n"
+        "  LTR = RawRead(raw_path)\n"
+        "  steps = LTR.get_steps()\n"
+        "  t = LTR.get_trace('time').get_wave(steps[0])\n"
+        "  v = LTR.get_trace('V(out)').get_wave(steps[0])\n"
+        "  cut = int(len(t) * 0.7)\n"
+        "  v_ss = v[cut:]\n"
+        "  metrics['V_mean'] = float(np.mean(v_ss))\n"
+        "  metrics['V_ripple_pp'] = float(np.ptp(v_ss))\n"
+        "  metrics['V_ripple_percent'] = float((np.ptp(v_ss) / np.mean(v_ss)) * 100)\n"
+        "  ```\n"
+        "Step 4: Check if specifications are met. When BOTH V_mean in [4.90, 5.10] V and V_ripple_pp < 0.05 V, conclude optimization."
+    )
+    
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=(
+            f"The initial simulation (Iter 0) yielded:\n"
+            f"- V_mean = {init_metrics['V_mean']:.3f} V (Target: 5.00 +/- 0.1 V)\n"
+            f"- V_ripple_pp = {init_metrics['V_ripple_pp']:.3f} V (Target: < 0.05 V)\n"
+            f"Current parameters: {current_params}\n\n"
+            f"Please propose the parameter updates and proceed with the optimization loop."
+        ))
+    ]
+    
+    current_metrics = dict(init_metrics)
+    iteration = 1
+    tool_map = {t.name: t for t in tools}
+    
+    print("\nStarting autonomous closed-loop optimization...")
+    while iteration <= max_iterations:
+        print(f"\n--- Iteration {iteration} ---")
+        tracker.total_llm_calls += 1
+        ai_msg = model.invoke(messages)
+        messages.append(ai_msg)
+        
+        if ai_msg.content:
+            print(f"Agent Reasoning: {ai_msg.content[:200]}...")
+            
+        if not ai_msg.tool_calls:
+            print("Agent stopped making tool calls.")
+            break
+            
+        for tool_call in ai_msg.tool_calls:
+            t_name = tool_call["name"]
+            t_args = tool_call["args"]
+            print(f"Tool Call: {t_name}({t_args})")
+            
+            tool_fn = tool_map[t_name]
+            tool_output = tool_fn.invoke(t_args)
+            messages.append(ToolMessage(content=str(tool_output), tool_call_id=tool_call["id"]))
+            
+            if t_name == "evaluate_results" and "Calculated Metrics:" in tool_output:
+                try:
+                    metrics_str = tool_output.split("Calculated Metrics:")[1].strip()
+                    m_eval = eval(metrics_str)
+                    current_metrics = m_eval
+                    tracker.log_step(iteration, current_params, current_metrics, "Evaluation step")
+                except Exception as ex:
+                    print(f"Error parsing metrics: {ex}")
+                    
+        # Check termination condition
+        v_m = current_metrics.get("V_mean", 0.0)
+        v_r = current_metrics.get("V_ripple_pp", 1.0)
+        if 4.90 <= v_m <= 5.10 and v_r < 0.05:
+            print("\n" + "="*50)
+            print(f"SUCCESS! Target specifications ACHIEVED at iteration {iteration}:")
+            print(f"  V_mean = {v_m:.4f} V (Target: 5.0 V +/- 0.1 V)")
+            print(f"  V_ripple_pp = {v_r:.4f} V (Target: < 0.05 V)")
+            print(f"  Parameters: {current_params}")
+            print("="*50)
+            break
+            
+        iteration += 1
+
+    # Save summary and generate plot
+    tracker.save_summary()
+    
+    # Generate Publication-Quality Comparison Figure
+    try:
+        raw_final = RawRead(target_raw)
+        s_fin = raw_final.get_steps()[0]
+        t_fin = raw_final.get_trace("time").get_wave(s_fin)
+        v_fin = raw_final.get_trace("V(out)").get_wave(s_fin)
+        
+        plt.style.use("seaborn-v0_8-whitegrid" if "seaborn-v0_8-whitegrid" in plt.style.available else "default")
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=False)
+        
+        # Plot 1: Full Transient (Initial vs Final)
+        ax1.plot(t_init * 1e3, v_init, 'r--', label=f"Initial (Ton=5.0µs, C=30µF): V_mean={init_metrics['V_mean']:.2f}V, Ripple={init_metrics['V_ripple_pp']:.3f}V", alpha=0.7)
+        ax1.plot(t_fin * 1e3, v_fin, 'b-', label=f"Optimized (Ton={current_params.get('Ton')}, C={current_params.get('C_nom')}): V_mean={current_metrics.get('V_mean', 0):.2f}V, Ripple={current_metrics.get('V_ripple_pp', 0):.3f}V", linewidth=1.5)
+        ax1.axhline(5.0, color='g', linestyle=':', label="Target V_mean = 5.0 V")
+        ax1.axhspan(4.9, 5.1, color='g', alpha=0.15, label="Tolerance Band (+/- 0.1 V)")
+        ax1.set_title("Non-Linear Buck Converter: Transient Response Comparison", fontsize=13, fontweight='bold')
+        ax1.set_ylabel("Output Voltage V(out) [V]", fontsize=11)
+        ax1.legend(loc="upper right", frameon=True)
+        ax1.grid(True, linestyle="--", alpha=0.5)
+        
+        # Plot 2: Steady-State Zoom (Last 0.5 ms)
+        t_zoom_init = t_init[-int(len(t_init)*0.08):] * 1e3
+        v_zoom_init = v_init[-int(len(v_init)*0.08):]
+        t_zoom_fin = t_fin[-int(len(t_fin)*0.08):] * 1e3
+        v_zoom_fin = v_fin[-int(len(v_fin)*0.08):]
+        
+        ax2.plot(t_zoom_init, v_zoom_init, 'r--', label=f"Initial Ripple: {init_metrics['V_ripple_pp']*1e3:.1f} mV ({init_metrics['V_ripple_percent']:.1f}%)", alpha=0.6)
+        ax2.plot(t_zoom_fin, v_zoom_fin, 'b-', label=f"Optimized Ripple: {current_metrics.get('V_ripple_pp', 0)*1e3:.1f} mV ({current_metrics.get('V_ripple_percent', 0):.2f}%) [Target < 50 mV]", linewidth=1.8)
+        ax2.set_title("Steady-State Output Ripple Zoom", fontsize=13, fontweight='bold')
+        ax2.set_xlabel("Time [ms]", fontsize=11)
+        ax2.set_ylabel("Output Voltage V(out) [V]", fontsize=11)
+        ax2.legend(loc="upper right", frameon=True)
+        ax2.grid(True, linestyle="--", alpha=0.5)
+        
+        plt.tight_layout()
+        plot_path = os.path.join(results_dir, "buck_optimization_comparison.png")
+        plt.savefig(plot_path, dpi=300)
+        plt.close()
+        print(f"Publication-quality figure saved to: {plot_path}")
+    except Exception as ex:
+        print(f"Error creating plot: {ex}")
+
+if __name__ == "__main__":
+    run_buck_optimization()
