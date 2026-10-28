@@ -4,6 +4,8 @@ Task 2.1: Non-Linear Buck Converter Optimization Benchmark
 Executes an autonomous closed-loop optimization run using SpiceAgent
 to resolve Reviewer 3's criticism: ensuring the agent achieves
 V_mean = 5.0V +/- 0.1V AND V_ripple < 0.05V (< 1%).
+
+Supports both OpenAI (gpt-4o) and Gemini (gemini-3.5-flash) providers.
 """
 
 import os
@@ -12,8 +14,21 @@ import shutil
 import time
 import json
 import traceback
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+
+# Auto-load keys from registry if missing from os.environ
+if sys.platform == "win32":
+    import winreg
+    for k in ['GOOGLE_API_KEY', 'GEMINI_API_KEY', 'OPENAI_API_KEY']:
+        if k not in os.environ or not os.environ[k]:
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment') as reg_key:
+                    val, _ = winreg.QueryValueEx(reg_key, k)
+                    os.environ[k] = val
+            except Exception:
+                pass
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 repo_root = os.path.abspath(os.path.join(script_dir, ".."))
@@ -22,14 +37,26 @@ sys.path.insert(0, script_dir)
 
 from runner_utils import BenchmarkTracker
 from PyLTSpice import SimRunner, SpiceEditor, RawRead
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langchain_core.tools import tool
 
-def run_buck_optimization(max_iterations: int = 15):
-    results_dir = os.path.join(script_dir, "results", "buck_converter")
+def get_llm(provider: str, model_name: str = None):
+    if provider == "gemini":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        m_name = model_name or "gemini-3.5-flash"
+        print(f"Using Gemini Provider with model: {m_name}")
+        return ChatGoogleGenerativeAI(model=m_name, temperature=0.1)
+    else:
+        from langchain_openai import ChatOpenAI
+        m_name = model_name or "gpt-4o"
+        print(f"Using OpenAI Provider with model: {m_name}")
+        return ChatOpenAI(model=m_name, temperature=0.1)
+
+def run_buck_optimization(provider: str = "gemini", model_name: str = None, max_iterations: int = 15):
+    provider_tag = f"_{provider}"
+    results_dir = os.path.join(script_dir, "results", f"buck_converter{provider_tag}")
     os.makedirs(results_dir, exist_ok=True)
-    tracker = BenchmarkTracker("Buck_Converter_Optimization", results_dir)
+    tracker = BenchmarkTracker(f"Buck_Optimization{provider_tag}", results_dir)
     
     work_dir = os.path.join(results_dir, "sim_workspace")
     os.makedirs(work_dir, exist_ok=True)
@@ -128,8 +155,10 @@ def run_buck_optimization(max_iterations: int = 15):
         You must write results into the 'metrics' dict: metrics['V_mean'] and metrics['V_ripple_pp'].
         """
         try:
+            # Clean common markdown wrapping if present
+            clean_script = python_script.replace("```python", "").replace("```", "").strip()
             local_scope = {"raw_path": target_raw, "RawRead": RawRead, "np": np, "metrics": {}}
-            exec(python_script, globals(), local_scope)
+            exec(clean_script, globals(), local_scope)
             m = local_scope.get("metrics", {})
             if m:
                 return f"Calculated Metrics: {m}"
@@ -138,7 +167,7 @@ def run_buck_optimization(max_iterations: int = 15):
             return f"Error executing evaluation script:\n{traceback.format_exc()}"
 
     tools = [update_circuit, simulate_circuit, evaluate_results]
-    model = ChatOpenAI(model="gpt-4o", temperature=0.1)
+    model = get_llm(provider, model_name)
     model = model.bind_tools(tools)
     
     # System Prompt
@@ -156,7 +185,6 @@ def run_buck_optimization(max_iterations: int = 15):
         "Step 2: Use `simulate_circuit` to run LTSpice.\n"
         "Step 3: Use `evaluate_results` with Python code to compute metrics.\n"
         "  Example evaluation code:\n"
-        "  ```python\n"
         "  LTR = RawRead(raw_path)\n"
         "  steps = LTR.get_steps()\n"
         "  t = LTR.get_trace('time').get_wave(steps[0])\n"
@@ -166,7 +194,6 @@ def run_buck_optimization(max_iterations: int = 15):
         "  metrics['V_mean'] = float(np.mean(v_ss))\n"
         "  metrics['V_ripple_pp'] = float(np.ptp(v_ss))\n"
         "  metrics['V_ripple_percent'] = float((np.ptp(v_ss) / np.mean(v_ss)) * 100)\n"
-        "  ```\n"
         "Step 4: Check if specifications are met. When BOTH V_mean in [4.90, 5.10] V and V_ripple_pp < 0.05 V, conclude optimization."
     )
     
@@ -185,7 +212,7 @@ def run_buck_optimization(max_iterations: int = 15):
     iteration = 1
     tool_map = {t.name: t for t in tools}
     
-    print("\nStarting autonomous closed-loop optimization...")
+    print(f"\nStarting autonomous closed-loop optimization ({provider})...")
     while iteration <= max_iterations:
         print(f"\n--- Iteration {iteration} ---")
         tracker.total_llm_calls += 1
@@ -213,7 +240,7 @@ def run_buck_optimization(max_iterations: int = 15):
                     metrics_str = tool_output.split("Calculated Metrics:")[1].strip()
                     m_eval = eval(metrics_str)
                     current_metrics = m_eval
-                    tracker.log_step(iteration, current_params, current_metrics, "Evaluation step")
+                    tracker.log_step(iteration, current_params, current_metrics, f"Evaluation step ({provider})")
                 except Exception as ex:
                     print(f"Error parsing metrics: {ex}")
                     
@@ -246,10 +273,10 @@ def run_buck_optimization(max_iterations: int = 15):
         
         # Plot 1: Full Transient (Initial vs Final)
         ax1.plot(t_init * 1e3, v_init, 'r--', label=f"Initial (Ton=5.0µs, C=30µF): V_mean={init_metrics['V_mean']:.2f}V, Ripple={init_metrics['V_ripple_pp']:.3f}V", alpha=0.7)
-        ax1.plot(t_fin * 1e3, v_fin, 'b-', label=f"Optimized (Ton={current_params.get('Ton')}, C={current_params.get('C_nom')}): V_mean={current_metrics.get('V_mean', 0):.2f}V, Ripple={current_metrics.get('V_ripple_pp', 0):.3f}V", linewidth=1.5)
+        ax1.plot(t_fin * 1e3, v_fin, 'b-', label=f"Optimized [{provider}] (Ton={current_params.get('Ton')}, C={current_params.get('C_nom')}): V_mean={current_metrics.get('V_mean', 0):.2f}V, Ripple={current_metrics.get('V_ripple_pp', 0):.3f}V", linewidth=1.5)
         ax1.axhline(5.0, color='g', linestyle=':', label="Target V_mean = 5.0 V")
         ax1.axhspan(4.9, 5.1, color='g', alpha=0.15, label="Tolerance Band (+/- 0.1 V)")
-        ax1.set_title("Non-Linear Buck Converter: Transient Response Comparison", fontsize=13, fontweight='bold')
+        ax1.set_title(f"Non-Linear Buck Converter: Optimization via SpiceAgent [{provider.upper()}]", fontsize=13, fontweight='bold')
         ax1.set_ylabel("Output Voltage V(out) [V]", fontsize=11)
         ax1.legend(loc="upper right", frameon=True)
         ax1.grid(True, linestyle="--", alpha=0.5)
@@ -269,7 +296,7 @@ def run_buck_optimization(max_iterations: int = 15):
         ax2.grid(True, linestyle="--", alpha=0.5)
         
         plt.tight_layout()
-        plot_path = os.path.join(results_dir, "buck_optimization_comparison.png")
+        plot_path = os.path.join(results_dir, f"buck_optimization_{provider}.png")
         plt.savefig(plot_path, dpi=300)
         plt.close()
         print(f"Publication-quality figure saved to: {plot_path}")
@@ -277,4 +304,10 @@ def run_buck_optimization(max_iterations: int = 15):
         print(f"Error creating plot: {ex}")
 
 if __name__ == "__main__":
-    run_buck_optimization()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--provider", choices=["gemini", "openai"], default="gemini")
+    parser.add_argument("--model", type=str, default=None)
+    parser.add_argument("--max_iterations", type=int, default=15)
+    args = parser.parse_args()
+    
+    run_buck_optimization(provider=args.provider, model_name=args.model, max_iterations=args.max_iterations)
