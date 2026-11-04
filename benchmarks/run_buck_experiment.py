@@ -18,17 +18,17 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Auto-load keys from registry if missing from os.environ
+# Auto-load keys from registry if available (ensures fresh key after setx/GUI updates)
 if sys.platform == "win32":
     import winreg
     for k in ['GOOGLE_API_KEY', 'GEMINI_API_KEY', 'OPENAI_API_KEY']:
-        if k not in os.environ or not os.environ[k]:
-            try:
-                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment') as reg_key:
-                    val, _ = winreg.QueryValueEx(reg_key, k)
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment') as reg_key:
+                val, _ = winreg.QueryValueEx(reg_key, k)
+                if val:
                     os.environ[k] = val
-            except Exception:
-                pass
+        except Exception:
+            pass
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 repo_root = os.path.abspath(os.path.join(script_dir, ".."))

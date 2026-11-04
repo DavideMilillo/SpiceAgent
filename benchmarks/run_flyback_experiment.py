@@ -21,17 +21,17 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Auto-load keys from registry if missing from os.environ
+# Auto-load keys from registry if available (ensures fresh key after setx/GUI updates)
 if sys.platform == "win32":
     import winreg
     for k in ['GOOGLE_API_KEY', 'GEMINI_API_KEY', 'OPENAI_API_KEY']:
-        if k not in os.environ or not os.environ[k]:
-            try:
-                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment') as reg_key:
-                    val, _ = winreg.QueryValueEx(reg_key, k)
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment') as reg_key:
+                val, _ = winreg.QueryValueEx(reg_key, k)
+                if val:
                     os.environ[k] = val
-            except Exception:
-                pass
+        except Exception:
+            pass
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 repo_root = os.path.abspath(os.path.join(script_dir, ".."))
@@ -233,7 +233,7 @@ def run_flyback_optimization(provider: str = "gemini", model_name: str = None, m
                     metrics_str = tool_output.split("Calculated Metrics:")[1].strip()
                     m_eval = eval(metrics_str)
                     current_metrics = m_eval
-                    tracker.log_step(iteration, current_params, current_metrics, f"Evaluation step ({provider} - {model_name or 'gemini-3.5-flash'})")
+                    tracker.log_step(iteration, current_params, current_metrics, f"Evaluation step ({provider} - {model_name or ('gemini-3.5-flash' if provider=='gemini' else 'gpt-4o')})")
                 except Exception as ex:
                     print(f"Error parsing metrics: {ex}")
                     
