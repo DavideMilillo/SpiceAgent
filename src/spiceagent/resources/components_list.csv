@@ -1,0 +1,14 @@
+Component_Type,Value,ESR,Package,Notes
+C,100u,0.05,1206,Standard E12 Capacitor
+C,120u,0.04,1206,Standard E12 Capacitor
+C,150u,0.03,1210,Standard E12 Capacitor
+C,180u,0.03,1210,Standard E12 Capacitor
+C,220u,0.02,1210,Standard E12 Capacitor
+C,330u,0.02,1210,Standard E12 Capacitor
+L,10u,0.02,SMD,Standard E12 Power Inductor
+L,15u,0.02,SMD,Standard E12 Power Inductor
+L,22u,0.03,SMD,Standard E12 Power Inductor
+R,5.6,0.0,0805,Standard E24 Resistor
+R,6.2,0.0,0805,Standard E24 Resistor
+R,6.8,0.0,0805,Standard E24 Resistor
+R,10,0.0,0805,Standard E24 Resistor
